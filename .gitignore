@@ -1,0 +1,11 @@
+Resource/
+test/
+.antlr/
+**/bin/
+**/obj/
+**/Release/
+**/Debug/
+**/x86/
+*.suo
+*.sdf
+*.jar
