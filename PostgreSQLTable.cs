@@ -2,16 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Odbc;
-using System.Data;
 using System.Windows.Forms;
-using System.Data.Odbc;
-using System.Collections;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Linq;
-using System.Data.Common;
-using System.Xml.Linq;
-using static Antlr4.Runtime.Atn.SemanticContext;
 
 namespace NppDB.PostgreSQL
 {
@@ -33,8 +26,6 @@ namespace NppDB.PostgreSQL
                 TreeView.Cursor = Cursors.WaitCursor;
                 try
                 {
-
-                    Console.WriteLine("table conn open");
                     cnn.Open();
                     Nodes.Clear();
 
@@ -42,22 +33,9 @@ namespace NppDB.PostgreSQL
 
                     var primaryKeyColumnNames = CollectPrimaryKeys(cnn, ref columns);
                     var foreignKeyColumnNames = CollectForeignKeys(cnn, ref columns);
+                    var indexedColumnNames = CollectIndices(cnn, ref columns);
 
-                    Console.WriteLine("CollectForeignKeys");
-                    foreach (var column in foreignKeyColumnNames) {
-                        Console.WriteLine(column);
-                    }
-                    Console.WriteLine();
-
-                    Console.WriteLine("CollectPrimaryKeys");
-                    foreach (var column in primaryKeyColumnNames)
-                    {
-                        Console.WriteLine(column);
-                    }
-                    Console.WriteLine();
-                    //var indexedColumnNames = CollectIndices(cnn, ref columns);
-
-                    var columnCount = CollectColumns(cnn, ref columns, primaryKeyColumnNames, foreignKeyColumnNames);
+                    var columnCount = CollectColumns(cnn, ref columns, primaryKeyColumnNames, foreignKeyColumnNames, indexedColumnNames);
                     if (columnCount == 0) return;
 
                     var maxLength = columns.Max(c => c.ColumnName.Length);
@@ -78,27 +56,25 @@ namespace NppDB.PostgreSQL
 
         private int CollectColumns(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns,
             in List<string> primaryKeyColumnNames,
-            in List<string> foreignKeyColumnNames
-            //in List<string> indexedColumnNames
+            in List<string> foreignKeyColumnNames,
+            in List<string> indexedColumnNames
             )
         {
-            //var dt = connection.GetSchema(OdbcMetaDataCollectionNames.Columns, new[] { null, null, Text, null });
-
             var count = 0;
             String query = "SELECT * FROM information_schema.columns WHERE table_schema = '{0}' AND table_name = '{1}' ORDER BY ordinal_position;";
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, Parent.Parent.Text, Text), connection))
+            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
             {
                 using (OdbcDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         var columnName = reader["column_name"].ToString();
-                        var dataTypeName = getDataTypeName(reader);
+                        var dataTypeName = GetDataTypeName(reader);
 
                         var options = 0;
 
                         if (reader["is_nullable"].ToString() == "YES") options += 1;
-                        //if (indexedColumnNames.Contains(columnName)) options += 10;
+                        if (indexedColumnNames.Contains(columnName)) options += 10;
                         if (primaryKeyColumnNames.Contains(columnName)) options += 100;
                         if (foreignKeyColumnNames.Contains(columnName)) options += 1000;
 
@@ -106,30 +82,10 @@ namespace NppDB.PostgreSQL
                     }
                 }
             }
-            //foreach (DataRow row in dt.AsEnumerable().OrderBy(r => r["ordinal_position"]))
-            //{
-               
-            //    var typename = ((OdbcType)Convert.ToInt32(row["data_type"])).ToString().ToUpper();
-            //    var columnName = row["COLUMN_NAME"].ToString();
-            //    var columnType = $"{typename}{(row["COLUMN_SIZE"] is DBNull ? "" : "(" + row["COLUMN_SIZE"] + ")")}";
-
-            //    var options = 0;
-            //    Console.WriteLine("typename: " + typename + " actual:" + Convert.ToInt32(row["data_type"]).ToString());
-            //    Console.WriteLine("columnName: " + columnName);
-            //    Console.WriteLine("columnType: " + columnType);
-            //    Console.WriteLine("isNUllble: " + row["IS_NULLABLE"].ToString());
-
-            //    if (!String.IsNullOrEmpty(row["IS_NULLABLE"].ToString()) && !Convert.ToBoolean(row["IS_NULLABLE"].ToString())) options += 1;
-            //    //if (indexedColumnNames.Contains(columnName)) options += 10;
-            //    if (primaryKeyColumnNames.Contains(columnName)) options += 100;
-            //    if (foreignKeyColumnNames.Contains(columnName)) options += 1000;
-
-            //    columns.Insert(count++, new PostgreSQLColumnInfo(columnName, columnType, 0, options));
-            //}
             return count;
         }
 
-        private string getDataTypeName(OdbcDataReader reader)
+        private string GetDataTypeName(OdbcDataReader reader)
         {
             var dataType = reader["data_type"].ToString();
             var charMaxLen = reader["character_maximum_length"].ToString();
@@ -161,7 +117,7 @@ namespace NppDB.PostgreSQL
                 "AND conrelid = '{1}'::regclass";
 
             var names = new List<string>();
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, Parent.Parent.Text, Text), connection))
+            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
             {
                 using (OdbcDataReader reader = command.ExecuteReader())
                 {
@@ -193,7 +149,7 @@ namespace NppDB.PostgreSQL
 
             var names = new List<string>();
 
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, Parent.Parent.Text, Text), connection))
+            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
             {
                 using (OdbcDataReader reader = command.ExecuteReader())
                 {
@@ -201,26 +157,49 @@ namespace NppDB.PostgreSQL
                     {
                         var foreignKeyName = reader["constraint_name"].ToString();
                         var foreignKeyDef = reader["constraint_definition"].ToString();
-                        Console.WriteLine(foreignKeyName);
-                        Console.WriteLine(foreignKeyDef);
+
                         var foreignKeyDefFormatted = reader["constraint_definition"].ToString();
                         Match fkColumnNameMatch = Regex.Match(foreignKeyDef, @"FOREIGN KEY \((?s)(.*)\) REFERENCES", RegexOptions.IgnoreCase);
                         Match fkTargetMatch = Regex.Match(foreignKeyDef, @"REFERENCES (?s)(.*)", RegexOptions.IgnoreCase);
-
-                        if (fkColumnNameMatch.Success)
-                        {
-                            Console.WriteLine("fkColumnNameMatch");
-                        }
-                        if (fkTargetMatch.Success)
-                        {
-                            Console.WriteLine("fkTargetMatch");
-                        }
                         if (fkColumnNameMatch.Success && fkColumnNameMatch.Groups.Count > 1 && fkTargetMatch.Success && fkTargetMatch.Groups.Count > 1) 
                         {
                             foreignKeyDefFormatted = $"({fkColumnNameMatch.Groups[1]}) -> {fkTargetMatch.Groups[1]}";
                             names.Add(fkColumnNameMatch.Groups[1].ToString());
                         }
                         columns.Add(new PostgreSQLColumnInfo(foreignKeyName, foreignKeyDefFormatted, 2, 0));
+                    }
+                }
+            }
+            return names;
+        }
+
+        private List<string> CollectIndices(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns)
+        {
+            var query = "select * from pg_indexes where schemaname = '{0}' and tablename = '{1}';";
+
+            var names = new List<string>();
+            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
+            {
+                using (OdbcDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var indexName = reader["indexname"].ToString();
+                        string indexDef = reader["indexdef"].ToString();
+
+                        var indexDefFormatted = reader["indexdef"].ToString();
+                        Match indexDefMatch = Regex.Match(indexDef, @"btree \((?s)(.*)\)", RegexOptions.IgnoreCase);
+                        if (indexDefMatch.Success && indexDefMatch.Groups.Count > 1)
+                        {
+                            string indexColumns = indexDefMatch.Groups[1].ToString();
+                            foreach (string column in indexColumns.Split(','))
+                            {
+                                names.Add(column.Trim());
+                            }
+                            indexDefFormatted = $"({indexColumns})";
+                        }
+
+                        columns.Add(new PostgreSQLColumnInfo(indexName, indexDefFormatted, indexDef?.IndexOf("unique", StringComparison.OrdinalIgnoreCase) >= 0 ? 4 : 3, 0));
                     }
                 }
             }
@@ -236,6 +215,12 @@ namespace NppDB.PostgreSQL
         {
             var connect = Parent.Parent.Parent as PostgreSQLConnect;
             return connect;
+        }
+
+        private string getSchemaName()
+        {
+            PostgreSQLSchema schema = Parent.Parent as PostgreSQLSchema;
+            return schema.Schema;
         }
     }
 }
