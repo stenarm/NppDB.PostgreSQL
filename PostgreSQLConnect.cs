@@ -48,7 +48,7 @@ namespace NppDB.PostgreSQL
             Console.WriteLine("end attach");
         }
 
-        internal ISQLExecutor CreateSQLExecutor()
+        public ISQLExecutor CreateSQLExecutor()
         {
             return new PostgreSQLExecutor(GetConnection);
         }
