@@ -207,7 +207,7 @@ namespace NppDB.PostgreSQL
                     //        }
                     //    }
                     //}
-                    string query = "SELECT nspname FROM pg_namespace;";
+                    string query = "SELECT nspname FROM pg_namespace order by nspname;";
                     using (OdbcCommand command = new OdbcCommand(query, conn))
                     {
                         using (OdbcDataReader reader = command.ExecuteReader())

@@ -91,10 +91,12 @@ namespace NppDB.PostgreSQL
             var charMaxLen = reader["character_maximum_length"].ToString();
             var numericPrecision = reader["numeric_precision"].ToString();
             var numericScale = reader["numeric_scale"].ToString();
+            var columnDefault = reader["column_default"].ToString();
             if (!String.IsNullOrEmpty(charMaxLen))
             {
                 dataType += $"({charMaxLen})";
-            } else if (!String.IsNullOrEmpty(numericPrecision))
+            } 
+            else if (!String.IsNullOrEmpty(numericPrecision) && dataType.Equals("numeric", StringComparison.OrdinalIgnoreCase))
             {
                 dataType += $"({numericPrecision}";
                 if (!String.IsNullOrEmpty(numericScale))
@@ -103,7 +105,11 @@ namespace NppDB.PostgreSQL
                 }
                 dataType += ")";
             }
-            return dataType;
+            if (!String.IsNullOrEmpty(columnDefault))
+            {
+                dataType += $" => {columnDefault}";
+            }
+            return dataType.ToUpper();
         }
 
         private List<string> CollectPrimaryKeys(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns)
