@@ -1,13 +1,5 @@
-﻿using NppDB.Comm;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.Odbc;
-using System.Data.OleDb;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
+using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
@@ -19,7 +11,7 @@ namespace NppDB.PostgreSQL
             Text = "Views";
         }
 
-        protected override TreeNode CreateTreeNode(OdbcDataReader reader)
+        protected override TreeNode CreateTreeNode(NpgsqlDataReader reader)
         {
             return new PostgreSQLView
             {

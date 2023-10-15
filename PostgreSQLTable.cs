@@ -1,10 +1,10 @@
 ﻿using NppDB.Comm;
 using System;
 using System.Collections.Generic;
-using System.Data.Odbc;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
+using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
@@ -54,7 +54,7 @@ namespace NppDB.PostgreSQL
             }
         }
 
-        private int CollectColumns(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns,
+        private int CollectColumns(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns,
             in List<string> primaryKeyColumnNames,
             in List<string> foreignKeyColumnNames,
             in List<string> indexedColumnNames
@@ -62,9 +62,9 @@ namespace NppDB.PostgreSQL
         {
             var count = 0;
             String query = "SELECT * FROM information_schema.columns WHERE table_schema = '{0}' AND table_name = '{1}' ORDER BY ordinal_position;";
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
             {
-                using (OdbcDataReader reader = command.ExecuteReader())
+                using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -85,7 +85,7 @@ namespace NppDB.PostgreSQL
             return count;
         }
 
-        private string GetDataTypeName(OdbcDataReader reader)
+        private string GetDataTypeName(NpgsqlDataReader reader)
         {
             var dataType = reader["data_type"].ToString();
             var charMaxLen = reader["character_maximum_length"].ToString();
@@ -112,7 +112,7 @@ namespace NppDB.PostgreSQL
             return dataType.ToUpper();
         }
 
-        private List<string> CollectPrimaryKeys(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns)
+        private List<string> CollectPrimaryKeys(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
             var query = "SELECT distinct conname as constraint_name " +
                 ", pg_get_constraintdef(oid) as constraint_definition " +
@@ -123,9 +123,9 @@ namespace NppDB.PostgreSQL
                 "AND conrelid = '{1}'::regclass";
 
             var names = new List<string>();
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
             {
-                using (OdbcDataReader reader = command.ExecuteReader())
+                using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -143,7 +143,7 @@ namespace NppDB.PostgreSQL
             return names;
         }
 
-        private List<string> CollectForeignKeys(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns)
+        private List<string> CollectForeignKeys(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
             var query = "SELECT distinct conname as constraint_name " +
                 ", pg_get_constraintdef(oid) as constraint_definition " +
@@ -155,9 +155,9 @@ namespace NppDB.PostgreSQL
 
             var names = new List<string>();
 
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
             {
-                using (OdbcDataReader reader = command.ExecuteReader())
+                using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
@@ -179,14 +179,14 @@ namespace NppDB.PostgreSQL
             return names;
         }
 
-        private List<string> CollectIndices(OdbcConnection connection, ref List<PostgreSQLColumnInfo> columns)
+        private List<string> CollectIndices(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
             var query = "select * from pg_indexes where schemaname = '{0}' and tablename = '{1}';";
 
             var names = new List<string>();
-            using (OdbcCommand command = new OdbcCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
             {
-                using (OdbcDataReader reader = command.ExecuteReader())
+                using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {

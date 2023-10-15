@@ -1,15 +1,7 @@
 ﻿using NppDB.Comm;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 using System.Windows.Forms;
-using System.Data.OleDb;
-using System.Data;
-using System.Data.Odbc;
-using System.Collections;
+using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
@@ -24,7 +16,7 @@ namespace NppDB.PostgreSQL
 
         protected string Query { get; set; }
 
-        protected virtual TreeNode CreateTreeNode(OdbcDataReader reader)
+        protected virtual TreeNode CreateTreeNode(NpgsqlDataReader reader)
         {
             return new PostgreSQLTable
             {
@@ -43,9 +35,9 @@ namespace NppDB.PostgreSQL
                 {
                     cnn.Open();
                     Nodes.Clear();
-                    using (OdbcCommand command = new OdbcCommand(String.Format(Query, Parent.Text), cnn))
+                    using (NpgsqlCommand command = new NpgsqlCommand(String.Format(Query, Parent.Text), cnn))
                     {
-                        using (OdbcDataReader reader = command.ExecuteReader())
+                        using (NpgsqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {

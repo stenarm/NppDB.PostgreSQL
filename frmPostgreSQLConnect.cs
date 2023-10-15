@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace NppDB.PostgreSQL
@@ -30,27 +23,27 @@ namespace NppDB.PostgreSQL
 
         public string Password
         {
-            get { return this.txtPassword.Text.Trim(); } // this.txtPassword.Text.Trim() "password"
+            get { return this.txtPassword.Text.Trim(); }
             set { this.txtPassword.Text = value; }
         }
         public string Username
         {
-            get { return this.txtUsername.Text.Trim(); } // this.txtUsername.Text.Trim() "username"
+            get { return this.txtUsername.Text.Trim(); }
             set { this.txtUsername.Text = value; }
         }
         public string Port
         {
-            get { return this.txtPort.Text.Trim(); } // this.txtPort.Text.Trim() "15432"
-            set { this.txtPort.Text = value; }
+            get { return this.nmrPort.Value.ToString(); }
+            set { this.nmrPort.Value = decimal.Parse(value); }
         }
         public string Server
         {
-            get { return this.txtServer.Text.Trim(); } // "127.0.0.1"
+            get { return this.txtServer.Text.Trim(); }
             set { this.txtServer.Text = value; }
         }
         public string Database
         {
-            get { return this.txtDatabase.Text.Trim(); } // this.txtDatabase.Text.Trim() "dvdrental"
+            get { return this.txtDatabase.Text.Trim(); }
             set { this.txtDatabase.Text = value; }
         }
 

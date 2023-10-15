@@ -1,14 +1,12 @@
 ﻿using NppDB.Comm;
 using System;
 using System.Collections.Generic;
-using System.Data.Odbc;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Antlr4.Runtime;
 using System.IO;
 using System.Data;
+using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
@@ -48,16 +46,15 @@ namespace NppDB.PostgreSQL
     public class PostgreSQLExecutor : ISQLExecutor
     {
         private Thread _execTh;
-        private readonly Func<OdbcConnection> _connector;
+        private readonly Func<NpgsqlConnection> _connector;
 
-        public PostgreSQLExecutor(Func<OdbcConnection> connector)
+        public PostgreSQLExecutor(Func<NpgsqlConnection> connector)
         {
             _connector = connector;
         }
 
         public void Execute(IList<string> sqlQueries, Action<IList<CommandResult>> callback)
         {
-            Console.WriteLine("execute");
             _execTh = new Thread(new ThreadStart(
                 delegate
                 {
@@ -70,16 +67,14 @@ namespace NppDB.PostgreSQL
                             conn.Open();
                             foreach (var sql in sqlQueries)
                             {
-                                Console.WriteLine(sql);
                                 if (string.IsNullOrWhiteSpace(sql)) continue;
                                 lastSql = sql;
 
                                 Console.WriteLine($"SQL: <{sql}>");
-                                var cmd = new OdbcCommand(sql, conn);
+                                var cmd = new NpgsqlCommand(sql, conn);
                                 var rd = cmd.ExecuteReader();
                                 var dt = new DataTable();
                                 dt.Load(rd);
-                                Console.WriteLine(dt.Columns.Count);
                                 results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
                             }
                         }
@@ -99,8 +94,6 @@ namespace NppDB.PostgreSQL
 
         public ParserResult Parse(string sqlText, CaretPosition caretPosition)
         {
-
-            Console.WriteLine(sqlText);
             var input = CharStreams.fromString(sqlText);
 
             var lexer = new PostgreSQLLexer(input);

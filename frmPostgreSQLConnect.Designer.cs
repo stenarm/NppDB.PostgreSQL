@@ -31,7 +31,6 @@
             this.txtServer = new System.Windows.Forms.TextBox();
             this.lblServer = new System.Windows.Forms.Label();
             this.lblPort = new System.Windows.Forms.Label();
-            this.txtPort = new System.Windows.Forms.TextBox();
             this.lblUsername = new System.Windows.Forms.Label();
             this.txtUsername = new System.Windows.Forms.TextBox();
             this.lblPassword = new System.Windows.Forms.Label();
@@ -42,6 +41,8 @@
             this.txtDatabase = new System.Windows.Forms.TextBox();
             this.cbxShowPwd = new System.Windows.Forms.CheckBox();
             this.cbxSaveConnectionDetails = new System.Windows.Forms.CheckBox();
+            this.nmrPort = new System.Windows.Forms.NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)(this.nmrPort)).BeginInit();
             this.SuspendLayout();
             // 
             // txtServer
@@ -68,13 +69,6 @@
             this.lblPort.Size = new System.Drawing.Size(26, 13);
             this.lblPort.TabIndex = 3;
             this.lblPort.Text = "Port";
-            // 
-            // txtPort
-            // 
-            this.txtPort.Location = new System.Drawing.Point(273, 81);
-            this.txtPort.Name = "txtPort";
-            this.txtPort.Size = new System.Drawing.Size(225, 20);
-            this.txtPort.TabIndex = 2;
             // 
             // lblUsername
             // 
@@ -166,11 +160,29 @@
             this.cbxSaveConnectionDetails.UseVisualStyleBackColor = true;
             this.cbxSaveConnectionDetails.Visible = false;
             // 
+            // nmrPort
+            // 
+            this.nmrPort.Location = new System.Drawing.Point(273, 82);
+            this.nmrPort.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.nmrPort.Name = "nmrPort";
+            this.nmrPort.Size = new System.Drawing.Size(225, 20);
+            this.nmrPort.TabIndex = 14;
+            this.nmrPort.Value = new decimal(new int[] {
+            5432,
+            0,
+            0,
+            0});
+            // 
             // frmPostgreSQLConnect
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.nmrPort);
             this.Controls.Add(this.cbxSaveConnectionDetails);
             this.Controls.Add(this.cbxShowPwd);
             this.Controls.Add(this.label1);
@@ -182,12 +194,12 @@
             this.Controls.Add(this.lblUsername);
             this.Controls.Add(this.txtUsername);
             this.Controls.Add(this.lblPort);
-            this.Controls.Add(this.txtPort);
             this.Controls.Add(this.lblServer);
             this.Controls.Add(this.txtServer);
             this.Name = "frmPostgreSQLConnect";
             this.Text = "PostgreSQL server connection";
             this.Load += new System.EventHandler(this.frmPassword_Load);
+            ((System.ComponentModel.ISupportInitialize)(this.nmrPort)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -198,7 +210,6 @@
         private System.Windows.Forms.TextBox txtServer;
         private System.Windows.Forms.Label lblServer;
         private System.Windows.Forms.Label lblPort;
-        private System.Windows.Forms.TextBox txtPort;
         private System.Windows.Forms.Label lblUsername;
         private System.Windows.Forms.TextBox txtUsername;
         private System.Windows.Forms.Label lblPassword;
@@ -209,5 +220,6 @@
         private System.Windows.Forms.TextBox txtDatabase;
         private System.Windows.Forms.CheckBox cbxShowPwd;
         private System.Windows.Forms.CheckBox cbxSaveConnectionDetails;
+        private System.Windows.Forms.NumericUpDown nmrPort;
     }
 }

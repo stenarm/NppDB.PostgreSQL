@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Data;
-using System.Data.Odbc;
-using System.Data.OleDb;
 using System.Drawing;
-using System.Linq;
-using System.Reflection;
 using System.Windows.Forms;
 using System.Xml.Serialization;
+using Npgsql;
 using NppDB.Comm;
 
 namespace NppDB.PostgreSQL
@@ -25,7 +22,7 @@ namespace NppDB.PostgreSQL
         public bool SaveConnectionDetails { set; get; }
         [XmlIgnore]
         public string Password { set; get; }
-        private OdbcConnection _connection;
+        private NpgsqlConnection _connection;
 
         public bool IsOpened => _connection != null && _connection.State == ConnectionState.Open;
 
@@ -52,11 +49,11 @@ namespace NppDB.PostgreSQL
             return new PostgreSQLExecutor(GetConnection);
         }
 
-        internal OdbcConnection GetConnection()
+        internal NpgsqlConnection GetConnection()
         {
-            OdbcConnectionStringBuilder builder = GetConnectionStringBuilder();
+            NpgsqlConnectionStringBuilder builder = GetConnectionStringBuilder();
             builder["Pwd"] = Password;
-            return new OdbcConnection(builder.ConnectionString);
+            return new NpgsqlConnection(builder.ConnectionString);
         }
 
         public bool CheckLogin()
@@ -82,20 +79,19 @@ namespace NppDB.PostgreSQL
 
         public void Connect()
         {
-            if (_connection == null) _connection = new OdbcConnection();
+            if (_connection == null) _connection = new NpgsqlConnection();
 
             var curConnStrBuilder = GetConnectionStringBuilder();
             if (String.IsNullOrEmpty(_connection.ConnectionString) ||
                 _connection.ConnectionString.Remove(_connection.ConnectionString.Length - 1, 1) != curConnStrBuilder.ConnectionString)
             {
-                curConnStrBuilder["Pwd"] = Password;
+                curConnStrBuilder["Password"] = Password;
                 _connection.ConnectionString = curConnStrBuilder.ConnectionString;
             }
             if (_connection.State == ConnectionState.Open) return;
             try
             {
                 _connection.Open();
-                Console.WriteLine("connected?");
             }
             catch (Exception ex)
             {
@@ -103,17 +99,15 @@ namespace NppDB.PostgreSQL
             }
         }
 
-        internal OdbcConnectionStringBuilder GetConnectionStringBuilder()
+        internal NpgsqlConnectionStringBuilder GetConnectionStringBuilder()
         {
-            var builder = new OdbcConnectionStringBuilder
+            var builder = new NpgsqlConnectionStringBuilder
             {
-                Driver = "PostgreSQL Unicode(x64)",
+                Username = Account,
+                Host = ServerAddress,
+                Port = int.Parse(Port.ToString()),
+                Database = Database
             };
-            builder["Uid"] = Account;
-            builder["Server"] = ServerAddress;
-            builder["Port"] = Port;
-            builder["Database"] = Database;
-            Console.WriteLine(builder.ConnectionString);
             return builder;
         }
 
@@ -185,34 +179,18 @@ namespace NppDB.PostgreSQL
 
         public void Refresh()
         {
-            Console.WriteLine("start Refresh");
             using (var conn = GetConnection())
             {
                 TreeView.Cursor = Cursors.WaitCursor;
                 TreeView.Enabled = false;
                 try
                 {
-                    Console.WriteLine("Refresh conn.open");
                     conn.Open();
-                    Console.WriteLine("Refresh conn.opened");
                     Nodes.Clear();
-                    //string currentNSQuery = "show search_path;";
-                    //string currentNS = "public";
-                    //using (OdbcCommand command = new OdbcCommand(currentNSQuery, conn))
-                    //{
-                    //    using (OdbcDataReader reader = command.ExecuteReader())
-                    //    {
-                    //        while (reader.Read())
-                    //        {
-                    //            currentNS = reader["search_path"].ToString();
-                    //            Console.WriteLine("Search Path: " + currentNS);
-                    //        }
-                    //    }
-                    //}
                     string query = "SELECT nspname FROM pg_namespace order by nspname;";
-                    using (OdbcCommand command = new OdbcCommand(query, conn))
+                    using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
                     {
-                        using (OdbcDataReader reader = command.ExecuteReader())
+                        using (NpgsqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
@@ -223,7 +201,6 @@ namespace NppDB.PostgreSQL
                                 //}
                                 var db = new PostgreSQLSchema { Text = schemaName, Schema = schemaName };
                                 Nodes.Add(db);
-                                Console.WriteLine("Schema Name: " + schemaName);
                             }
                         }
                     }
@@ -239,7 +216,6 @@ namespace NppDB.PostgreSQL
                     TreeView.Cursor = null;
                 }
             }
-            Console.WriteLine("end Refresh");
         }
 
         public void Reset()
