@@ -53,18 +53,6 @@ namespace NppDB.PostgreSQL
                             }
                         }
                     }
-                    //cnn.Open();
-                    //var dt = cnn.GetSchema(SchemaName);
-                    //Nodes.Clear();
-                    //foreach (DataRow row in dt.Rows)
-                    //{
-                    //    var tableName = row["table_name"] as string;
-                    //    if (SchemaName == OleDbMetaDataCollectionNames.Tables && row["table_type"] as string == "VIEW") continue;
-                    //    if (tableName != null && (tableName.ToUpper().StartsWith("MSYS") ||
-                    //                              tableName.ToUpper().StartsWith("USYS")))
-                    //        continue;
-                    //    Nodes.Add(CreateTreeNode(row));
-                    //}
                 }
                 catch (Exception ex)
                 {

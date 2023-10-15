@@ -22,6 +22,7 @@ namespace NppDB.PostgreSQL
         public string Account { set; get; }
         public string Port { set; get; }
         public string Database { set; get; }
+        public bool SaveConnectionDetails { set; get; }
         [XmlIgnore]
         public string Password { set; get; }
         private OdbcConnection _connection;
@@ -37,7 +38,6 @@ namespace NppDB.PostgreSQL
 
         public void Attach()
         {
-            Console.WriteLine("start attach");
             var id = CommandHost.Execute(NppDBCommandType.GetAttachedBufferID, null);
             if (id != null)
             {
@@ -45,7 +45,6 @@ namespace NppDB.PostgreSQL
             }
             id = CommandHost.Execute(NppDBCommandType.GetActivatedBufferID, null);
             CommandHost.Execute(NppDBCommandType.CreateResultView, new[] { id, this, CreateSQLExecutor() });
-            Console.WriteLine("end attach");
         }
 
         public ISQLExecutor CreateSQLExecutor()
@@ -62,19 +61,22 @@ namespace NppDB.PostgreSQL
 
         public bool CheckLogin()
         {
-            var dlg = new frmPostgreSQLConnect();
+            var dlg = new frmPostgreSQLConnect { VisiblePassword = false };
+            if (!String.IsNullOrEmpty(Account) || !String.IsNullOrEmpty(Port) || 
+                !String.IsNullOrEmpty(ServerAddress) || !String.IsNullOrEmpty(Database)) 
+            {
+                dlg.Username = Account;
+                dlg.Port = Port;
+                dlg.Server = ServerAddress;
+                dlg.Database = Database;
+            }
             if (dlg.ShowDialog() != DialogResult.OK) return false;
+            SaveConnectionDetails = dlg.SaveConnectionDetails;
             Password = dlg.Password;
             Account = dlg.Username;
             Port = dlg.Port;
             ServerAddress = dlg.Server;
             Database = dlg.Database;
-
-            Console.WriteLine(Password);
-            Console.WriteLine(Account);
-            Console.WriteLine(Port);
-            Console.WriteLine(ServerAddress);
-            Console.WriteLine(Database);
             return true;
         }
 
@@ -242,7 +244,11 @@ namespace NppDB.PostgreSQL
 
         public void Reset()
         {
-            Title = ""; ServerAddress = ""; Account = ""; Password = "";
+            if (!SaveConnectionDetails) 
+            {
+                Database = ""; ServerAddress = ""; Account = "";; Port = "";
+            }
+            Password = "";
             Disconnect();
             _connection = null;
         }

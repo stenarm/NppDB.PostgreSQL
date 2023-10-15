@@ -212,9 +212,31 @@ namespace NppDB.PostgreSQL
             return names;
         }
 
-        public ContextMenuStrip GetMenu()
+        public virtual ContextMenuStrip GetMenu()
         {
-            throw new NotImplementedException();
+            var menuList = new ContextMenuStrip { ShowImageMargin = false };
+            var connect = GetDBConnect();
+            menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
+            if (connect?.CommandHost == null) return menuList;
+            menuList.Items.Add(new ToolStripSeparator());
+
+            var host = connect.CommandHost;
+            menuList.Items.Add(new ToolStripButton($"SELECT * FROM {Text}", null, (s, e) =>
+            {
+                host.Execute(NppDBCommandType.NewFile, null);
+                var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                var query = $"SELECT * FROM {getSchemaName()}.{Text};";
+                host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
+                host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
+                host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+            }));
+            menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+            {
+                var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                var query = $"DROP {TypeName} {getSchemaName()}.{Text};";
+                host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+            }));
+            return menuList;
         }
 
         private PostgreSQLConnect GetDBConnect()

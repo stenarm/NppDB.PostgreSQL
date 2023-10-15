@@ -17,29 +17,40 @@ namespace NppDB.PostgreSQL
             InitializeComponent();
         }
 
+        public bool VisiblePassword
+        {
+            get { return this.cbxShowPwd.Checked; }
+            set { this.cbxShowPwd.Checked = value; }
+        }
+        public bool SaveConnectionDetails
+        {
+            get { return this.cbxSaveConnectionDetails.Checked; }
+            set { this.cbxSaveConnectionDetails.Checked = value; }
+        }
+
         public string Password
         {
-            get { return "password"; } // this.txtPassword.Text.Trim()
+            get { return this.txtPassword.Text.Trim(); } // this.txtPassword.Text.Trim() "password"
             set { this.txtPassword.Text = value; }
         }
         public string Username
         {
-            get { return "username"; } // this.txtUsername.Text.Trim()
+            get { return this.txtUsername.Text.Trim(); } // this.txtUsername.Text.Trim() "username"
             set { this.txtUsername.Text = value; }
         }
         public string Port
         {
-            get { return "15432"; } // this.txtPort.Text.Trim()
+            get { return this.txtPort.Text.Trim(); } // this.txtPort.Text.Trim() "15432"
             set { this.txtPort.Text = value; }
         }
         public string Server
         {
-            get { return "127.0.0.1"; } // this.txtServer.Text.Trim()
+            get { return this.txtServer.Text.Trim(); } // "127.0.0.1"
             set { this.txtServer.Text = value; }
         }
         public string Database
         {
-            get { return "dvdrental"; } // this.txtServer.Text.Trim()
+            get { return this.txtDatabase.Text.Trim(); } // this.txtDatabase.Text.Trim() "dvdrental"
             set { this.txtDatabase.Text = value; }
         }
 
@@ -51,6 +62,21 @@ namespace NppDB.PostgreSQL
         {
             this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.Close();
+        }
+
+        private void cbxShowPwd_CheckedChanged(object sender, EventArgs e)
+        {
+            AdjustPasswordChar();
+        }
+
+        private void AdjustPasswordChar()
+        {
+            this.txtPassword.PasswordChar = this.cbxShowPwd.Checked ? (char)0 : '*';
+        }
+
+        private void frmPassword_Load(object sender, EventArgs e)
+        {
+            AdjustPasswordChar();
         }
     }
 }
