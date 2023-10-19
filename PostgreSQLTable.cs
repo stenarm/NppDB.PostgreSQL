@@ -116,8 +116,8 @@ namespace NppDB.PostgreSQL
         {
             var query = "SELECT distinct conname as constraint_name " +
                 ", pg_get_constraintdef(oid) as constraint_definition " +
-                "FROM pg_constraint " +
-                "JOIN pg_attribute a ON a.attrelid = conrelid " +
+                "FROM pg_catalog.pg_constraint " +
+                "JOIN pg_catalog.pg_attribute a ON a.attrelid = conrelid " +
                 "WHERE contype IN('p') " +
                 "AND connamespace = '{0}'::regnamespace " +
                 "AND conrelid = '{1}'::regclass";
@@ -147,8 +147,8 @@ namespace NppDB.PostgreSQL
         {
             var query = "SELECT distinct conname as constraint_name " +
                 ", pg_get_constraintdef(oid) as constraint_definition " +
-                "FROM pg_constraint " +
-                "JOIN pg_attribute a ON a.attrelid = conrelid " +
+                "FROM pg_catalog.pg_constraint " +
+                "JOIN pg_catalog.pg_attribute a ON a.attrelid = conrelid " +
                 "WHERE contype IN('f') " +
                 "AND connamespace = '{0}'::regnamespace " +
                 "AND conrelid = '{1}'::regclass"; ;
@@ -181,7 +181,7 @@ namespace NppDB.PostgreSQL
 
         private List<string> CollectIndices(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
-            var query = "select * from pg_indexes where schemaname = '{0}' and tablename = '{1}';";
+            var query = "select * from pg_catalog.pg_indexes where schemaname = '{0}' and tablename = '{1}';";
 
             var names = new List<string>();
             using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))

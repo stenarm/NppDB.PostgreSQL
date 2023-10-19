@@ -46,6 +46,11 @@ namespace NppDB.PostgreSQL
             get { return this.txtDatabase.Text.Trim(); }
             set { this.txtDatabase.Text = value; }
         }
+        public string ConnectionName
+        {
+            get { return this.txtConnName.Text.Trim(); }
+            set { this.txtConnName.Text = value; }
+        }
 
         private void btnOK_Click(object sender, EventArgs e)
         {
@@ -70,6 +75,13 @@ namespace NppDB.PostgreSQL
         private void frmPassword_Load(object sender, EventArgs e)
         {
             AdjustPasswordChar();
+        }
+
+        public void SetConnNameVisible(bool visible)
+        {
+            this.descConnName.Visible = visible;
+            this.lblConnName.Visible = visible;
+            this.txtConnName.Visible = visible;
         }
     }
 }

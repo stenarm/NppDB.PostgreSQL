@@ -19,6 +19,7 @@ namespace NppDB.PostgreSQL
         public string Account { set; get; }
         public string Port { set; get; }
         public string Database { set; get; }
+        public string ConnectionName { set; get; }
         public bool SaveConnectionDetails { set; get; }
         [XmlIgnore]
         public string Password { set; get; }
@@ -60,12 +61,14 @@ namespace NppDB.PostgreSQL
         {
             var dlg = new frmPostgreSQLConnect { VisiblePassword = false };
             if (!String.IsNullOrEmpty(Account) || !String.IsNullOrEmpty(Port) || 
-                !String.IsNullOrEmpty(ServerAddress) || !String.IsNullOrEmpty(Database)) 
+                !String.IsNullOrEmpty(ServerAddress) || !String.IsNullOrEmpty(Database) || !String.IsNullOrEmpty(Database)) 
             {
                 dlg.Username = Account;
                 dlg.Port = Port;
                 dlg.Server = ServerAddress;
                 dlg.Database = Database;
+                dlg.ConnectionName = ConnectionName;
+                dlg.SetConnNameVisible(false);
             }
             if (dlg.ShowDialog() != DialogResult.OK) return false;
             SaveConnectionDetails = dlg.SaveConnectionDetails;
@@ -74,6 +77,7 @@ namespace NppDB.PostgreSQL
             Port = dlg.Port;
             ServerAddress = dlg.Server;
             Database = dlg.Database;
+            ConnectionName = dlg.ConnectionName;
             return true;
         }
 
@@ -135,7 +139,7 @@ namespace NppDB.PostgreSQL
 
         public string GetDefaultTitle()
         {
-            return string.IsNullOrEmpty(Database) ? "" : Database;
+            return !string.IsNullOrEmpty(ConnectionName) ? ConnectionName : !string.IsNullOrEmpty(Database) ? Database : "Untitled";
         }
 
         public Bitmap GetIcon()

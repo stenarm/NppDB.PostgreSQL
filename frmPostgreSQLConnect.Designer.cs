@@ -42,46 +42,49 @@
             this.cbxShowPwd = new System.Windows.Forms.CheckBox();
             this.cbxSaveConnectionDetails = new System.Windows.Forms.CheckBox();
             this.nmrPort = new System.Windows.Forms.NumericUpDown();
+            this.lblConnName = new System.Windows.Forms.Label();
+            this.txtConnName = new System.Windows.Forms.TextBox();
+            this.descConnName = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.nmrPort)).BeginInit();
             this.SuspendLayout();
             // 
             // txtServer
             // 
-            this.txtServer.Location = new System.Drawing.Point(273, 45);
+            this.txtServer.Location = new System.Drawing.Point(280, 78);
             this.txtServer.Name = "txtServer";
             this.txtServer.Size = new System.Drawing.Size(225, 20);
-            this.txtServer.TabIndex = 0;
+            this.txtServer.TabIndex = 1;
             // 
             // lblServer
             // 
             this.lblServer.AutoSize = true;
-            this.lblServer.Location = new System.Drawing.Point(186, 48);
+            this.lblServer.Location = new System.Drawing.Point(221, 81);
             this.lblServer.Name = "lblServer";
             this.lblServer.Size = new System.Drawing.Size(29, 13);
-            this.lblServer.TabIndex = 1;
+            this.lblServer.TabIndex = 991;
             this.lblServer.Text = "Host";
             // 
             // lblPort
             // 
             this.lblPort.AutoSize = true;
-            this.lblPort.Location = new System.Drawing.Point(186, 84);
+            this.lblPort.Location = new System.Drawing.Point(221, 122);
             this.lblPort.Name = "lblPort";
             this.lblPort.Size = new System.Drawing.Size(26, 13);
-            this.lblPort.TabIndex = 3;
+            this.lblPort.TabIndex = 992;
             this.lblPort.Text = "Port";
             // 
             // lblUsername
             // 
             this.lblUsername.AutoSize = true;
-            this.lblUsername.Location = new System.Drawing.Point(186, 163);
+            this.lblUsername.Location = new System.Drawing.Point(219, 207);
             this.lblUsername.Name = "lblUsername";
             this.lblUsername.Size = new System.Drawing.Size(55, 13);
-            this.lblUsername.TabIndex = 5;
+            this.lblUsername.TabIndex = 995;
             this.lblUsername.Text = "Username";
             // 
             // txtUsername
             // 
-            this.txtUsername.Location = new System.Drawing.Point(273, 160);
+            this.txtUsername.Location = new System.Drawing.Point(280, 204);
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.Size = new System.Drawing.Size(225, 20);
             this.txtUsername.TabIndex = 4;
@@ -89,62 +92,62 @@
             // lblPassword
             // 
             this.lblPassword.AutoSize = true;
-            this.lblPassword.Location = new System.Drawing.Point(187, 203);
+            this.lblPassword.Location = new System.Drawing.Point(221, 249);
             this.lblPassword.Name = "lblPassword";
             this.lblPassword.Size = new System.Drawing.Size(53, 13);
-            this.lblPassword.TabIndex = 7;
+            this.lblPassword.TabIndex = 996;
             this.lblPassword.Text = "Password";
             // 
             // txtPassword
             // 
-            this.txtPassword.Location = new System.Drawing.Point(273, 200);
+            this.txtPassword.Location = new System.Drawing.Point(280, 246);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.Size = new System.Drawing.Size(225, 20);
-            this.txtPassword.TabIndex = 6;
+            this.txtPassword.TabIndex = 5;
             // 
             // btnOK
             // 
-            this.btnOK.Location = new System.Drawing.Point(273, 265);
+            this.btnOK.Location = new System.Drawing.Point(279, 303);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
-            this.btnOK.TabIndex = 8;
+            this.btnOK.TabIndex = 6;
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(422, 264);
+            this.btnCancel.Location = new System.Drawing.Point(428, 302);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
-            this.btnCancel.TabIndex = 9;
-            this.btnCancel.Text = "cancel";
+            this.btnCancel.TabIndex = 7;
+            this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(186, 121);
+            this.label1.Location = new System.Drawing.Point(221, 165);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(53, 13);
-            this.label1.TabIndex = 11;
+            this.label1.TabIndex = 994;
             this.label1.Text = "Database";
             // 
             // txtDatabase
             // 
-            this.txtDatabase.Location = new System.Drawing.Point(273, 118);
+            this.txtDatabase.Location = new System.Drawing.Point(280, 162);
             this.txtDatabase.Name = "txtDatabase";
             this.txtDatabase.Size = new System.Drawing.Size(225, 20);
-            this.txtDatabase.TabIndex = 10;
+            this.txtDatabase.TabIndex = 3;
             // 
             // cbxShowPwd
             // 
             this.cbxShowPwd.AutoSize = true;
-            this.cbxShowPwd.Location = new System.Drawing.Point(504, 203);
+            this.cbxShowPwd.Location = new System.Drawing.Point(514, 249);
             this.cbxShowPwd.Name = "cbxShowPwd";
             this.cbxShowPwd.Size = new System.Drawing.Size(101, 17);
-            this.cbxShowPwd.TabIndex = 12;
+            this.cbxShowPwd.TabIndex = 997;
             this.cbxShowPwd.Text = "Show password";
             this.cbxShowPwd.UseVisualStyleBackColor = true;
             this.cbxShowPwd.CheckedChanged += new System.EventHandler(this.cbxShowPwd_CheckedChanged);
@@ -152,17 +155,17 @@
             // cbxSaveConnectionDetails
             // 
             this.cbxSaveConnectionDetails.AutoSize = true;
-            this.cbxSaveConnectionDetails.Location = new System.Drawing.Point(273, 242);
+            this.cbxSaveConnectionDetails.Location = new System.Drawing.Point(279, 280);
             this.cbxSaveConnectionDetails.Name = "cbxSaveConnectionDetails";
             this.cbxSaveConnectionDetails.Size = new System.Drawing.Size(140, 17);
-            this.cbxSaveConnectionDetails.TabIndex = 13;
+            this.cbxSaveConnectionDetails.TabIndex = 998;
             this.cbxSaveConnectionDetails.Text = "Save connection details";
             this.cbxSaveConnectionDetails.UseVisualStyleBackColor = true;
             this.cbxSaveConnectionDetails.Visible = false;
             // 
             // nmrPort
             // 
-            this.nmrPort.Location = new System.Drawing.Point(273, 82);
+            this.nmrPort.Location = new System.Drawing.Point(280, 120);
             this.nmrPort.Maximum = new decimal(new int[] {
             1000000,
             0,
@@ -170,18 +173,46 @@
             0});
             this.nmrPort.Name = "nmrPort";
             this.nmrPort.Size = new System.Drawing.Size(225, 20);
-            this.nmrPort.TabIndex = 14;
+            this.nmrPort.TabIndex = 2;
             this.nmrPort.Value = new decimal(new int[] {
             5432,
             0,
             0,
             0});
             // 
+            // lblConnName
+            // 
+            this.lblConnName.AutoSize = true;
+            this.lblConnName.Location = new System.Drawing.Point(184, 39);
+            this.lblConnName.Name = "lblConnName";
+            this.lblConnName.Size = new System.Drawing.Size(90, 13);
+            this.lblConnName.TabIndex = 993;
+            this.lblConnName.Text = "Connection name";
+            // 
+            // txtConnName
+            // 
+            this.txtConnName.Location = new System.Drawing.Point(280, 36);
+            this.txtConnName.Name = "txtConnName";
+            this.txtConnName.Size = new System.Drawing.Size(225, 20);
+            this.txtConnName.TabIndex = 0;
+            // 
+            // descConnName
+            // 
+            this.descConnName.AutoSize = true;
+            this.descConnName.Location = new System.Drawing.Point(511, 39);
+            this.descConnName.Name = "descConnName";
+            this.descConnName.Size = new System.Drawing.Size(140, 13);
+            this.descConnName.TabIndex = 16;
+            this.descConnName.Text = "(Defaults to database name)";
+            // 
             // frmPostgreSQLConnect
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.descConnName);
+            this.Controls.Add(this.lblConnName);
+            this.Controls.Add(this.txtConnName);
             this.Controls.Add(this.nmrPort);
             this.Controls.Add(this.cbxSaveConnectionDetails);
             this.Controls.Add(this.cbxShowPwd);
@@ -221,5 +252,8 @@
         private System.Windows.Forms.CheckBox cbxShowPwd;
         private System.Windows.Forms.CheckBox cbxSaveConnectionDetails;
         private System.Windows.Forms.NumericUpDown nmrPort;
+        private System.Windows.Forms.Label lblConnName;
+        private System.Windows.Forms.TextBox txtConnName;
+        private System.Windows.Forms.Label descConnName;
     }
 }
