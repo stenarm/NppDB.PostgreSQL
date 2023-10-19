@@ -2449,6 +2449,7 @@ transactionstmt
 opt_transaction
    : WORK
    | TRANSACTION
+   | ATOMIC
    |
    ;
 

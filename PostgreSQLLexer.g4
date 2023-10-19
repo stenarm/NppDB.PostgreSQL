@@ -698,6 +698,10 @@ AT
    : 'AT'
    ;
 
+ATOMIC
+   : 'ATOMIC'
+   ;
+
 ATTRIBUTE
    : 'ATTRIBUTE'
    ;
@@ -2871,10 +2875,15 @@ Numeric
    ('E' [+-]? Digits)?
    | '.' Digits ('E' [+-]? Digits)?
    | Digits 'E' [+-]? Digits
+   | '0x' HexDigits
    ;
 
 fragment Digits
-   : [0-9]+
+   : [0-9_]+
+   ;
+
+fragment HexDigits
+   : [0-9a-fA-F]+
    ;
 
 PLSQLVARIABLENAME
