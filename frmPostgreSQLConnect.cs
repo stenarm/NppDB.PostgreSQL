@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Npgsql;
+using System;
+using System.Data.Common;
+using System.Security.Principal;
 using System.Windows.Forms;
 
 namespace NppDB.PostgreSQL
@@ -61,6 +64,29 @@ namespace NppDB.PostgreSQL
             this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.Close();
         }
+        private void btnTestConnection_Click(object sender, EventArgs e)
+        {
+            NpgsqlConnection connection = new NpgsqlConnection();
+            var builder = new NpgsqlConnectionStringBuilder
+            {
+                Username = Username,
+                Host = Server,
+                Port = int.Parse(Port.ToString()),
+                Database = Database,
+                Password = Password,
+            };
+            connection.ConnectionString = builder.ConnectionString;
+            try
+            {
+                connection.Open();
+                MessageBox.Show($"Connection successful", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to connect to server {ex.Message}", "Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally { connection.Close(); }
+        }
 
         private void cbxShowPwd_CheckedChanged(object sender, EventArgs e)
         {
@@ -79,7 +105,6 @@ namespace NppDB.PostgreSQL
 
         public void SetConnNameVisible(bool visible)
         {
-            this.descConnName.Visible = visible;
             this.lblConnName.Visible = visible;
             this.txtConnName.Visible = visible;
         }

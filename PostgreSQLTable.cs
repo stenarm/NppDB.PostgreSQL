@@ -235,12 +235,20 @@ namespace NppDB.PostgreSQL
                 host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
                 host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
             }));
-            menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+            string schemaName = GetSchemaName();
+            if (schemaName != "information_schema" && schemaName != "pg_catalog") 
             {
-                var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
-                host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
-            }));
+                menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                {
+                    var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                    var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
+                    host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                }));
+            }
+            // Needed an invisible button so previous buttons' text isn't cut off
+            ToolStripButton dummy = new ToolStripButton("Dummy", null, (s, e) => { });
+            dummy.Visible = false;
+            menuList.Items.Add(dummy);
             return menuList;
         }
 

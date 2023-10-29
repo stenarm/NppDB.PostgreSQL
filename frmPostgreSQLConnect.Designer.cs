@@ -44,7 +44,7 @@
             this.nmrPort = new System.Windows.Forms.NumericUpDown();
             this.lblConnName = new System.Windows.Forms.Label();
             this.txtConnName = new System.Windows.Forms.TextBox();
-            this.descConnName = new System.Windows.Forms.Label();
+            this.btnTestConnection = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.nmrPort)).BeginInit();
             this.SuspendLayout();
             // 
@@ -58,29 +58,29 @@
             // lblServer
             // 
             this.lblServer.AutoSize = true;
-            this.lblServer.Location = new System.Drawing.Point(221, 81);
+            this.lblServer.Location = new System.Drawing.Point(219, 81);
             this.lblServer.Name = "lblServer";
-            this.lblServer.Size = new System.Drawing.Size(29, 13);
+            this.lblServer.Size = new System.Drawing.Size(33, 13);
             this.lblServer.TabIndex = 991;
-            this.lblServer.Text = "Host";
+            this.lblServer.Text = "Host*";
             // 
             // lblPort
             // 
             this.lblPort.AutoSize = true;
-            this.lblPort.Location = new System.Drawing.Point(221, 122);
+            this.lblPort.Location = new System.Drawing.Point(219, 122);
             this.lblPort.Name = "lblPort";
-            this.lblPort.Size = new System.Drawing.Size(26, 13);
+            this.lblPort.Size = new System.Drawing.Size(30, 13);
             this.lblPort.TabIndex = 992;
-            this.lblPort.Text = "Port";
+            this.lblPort.Text = "Port*";
             // 
             // lblUsername
             // 
             this.lblUsername.AutoSize = true;
             this.lblUsername.Location = new System.Drawing.Point(219, 207);
             this.lblUsername.Name = "lblUsername";
-            this.lblUsername.Size = new System.Drawing.Size(55, 13);
+            this.lblUsername.Size = new System.Drawing.Size(59, 13);
             this.lblUsername.TabIndex = 995;
-            this.lblUsername.Text = "Username";
+            this.lblUsername.Text = "Username*";
             // 
             // txtUsername
             // 
@@ -92,11 +92,11 @@
             // lblPassword
             // 
             this.lblPassword.AutoSize = true;
-            this.lblPassword.Location = new System.Drawing.Point(221, 249);
+            this.lblPassword.Location = new System.Drawing.Point(219, 249);
             this.lblPassword.Name = "lblPassword";
-            this.lblPassword.Size = new System.Drawing.Size(53, 13);
+            this.lblPassword.Size = new System.Drawing.Size(57, 13);
             this.lblPassword.TabIndex = 996;
-            this.lblPassword.Text = "Password";
+            this.lblPassword.Text = "Password*";
             // 
             // txtPassword
             // 
@@ -128,11 +128,11 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(221, 165);
+            this.label1.Location = new System.Drawing.Point(219, 165);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(53, 13);
+            this.label1.Size = new System.Drawing.Size(57, 13);
             this.label1.TabIndex = 994;
-            this.label1.Text = "Database";
+            this.label1.Text = "Database*";
             // 
             // txtDatabase
             // 
@@ -196,21 +196,22 @@
             this.txtConnName.Size = new System.Drawing.Size(225, 20);
             this.txtConnName.TabIndex = 0;
             // 
-            // descConnName
+            // btnTestConnection
             // 
-            this.descConnName.AutoSize = true;
-            this.descConnName.Location = new System.Drawing.Point(511, 39);
-            this.descConnName.Name = "descConnName";
-            this.descConnName.Size = new System.Drawing.Size(140, 13);
-            this.descConnName.TabIndex = 16;
-            this.descConnName.Text = "(Defaults to database name)";
+            this.btnTestConnection.Location = new System.Drawing.Point(280, 343);
+            this.btnTestConnection.Name = "btnTestConnection";
+            this.btnTestConnection.Size = new System.Drawing.Size(225, 23);
+            this.btnTestConnection.TabIndex = 999;
+            this.btnTestConnection.Text = "Test connection";
+            this.btnTestConnection.UseVisualStyleBackColor = true;
+            this.btnTestConnection.Click += new System.EventHandler(this.btnTestConnection_Click);
             // 
             // frmPostgreSQLConnect
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.descConnName);
+            this.Controls.Add(this.btnTestConnection);
             this.Controls.Add(this.lblConnName);
             this.Controls.Add(this.txtConnName);
             this.Controls.Add(this.nmrPort);
@@ -254,6 +255,6 @@
         private System.Windows.Forms.NumericUpDown nmrPort;
         private System.Windows.Forms.Label lblConnName;
         private System.Windows.Forms.TextBox txtConnName;
-        private System.Windows.Forms.Label descConnName;
+        private System.Windows.Forms.Button btnTestConnection;
     }
 }
