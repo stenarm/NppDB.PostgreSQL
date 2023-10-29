@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Text.RegularExpressions;
 using System.Linq;
 using Npgsql;
+using System.Collections;
 
 namespace NppDB.PostgreSQL
 {
@@ -31,12 +32,20 @@ namespace NppDB.PostgreSQL
 
                     var columns = new List<PostgreSQLColumnInfo>();
 
-                    var primaryKeyColumnNames = CollectPrimaryKeys(cnn, ref columns);
-                    var foreignKeyColumnNames = CollectForeignKeys(cnn, ref columns);
-                    var indexedColumnNames = CollectIndices(cnn, ref columns);
+                    if (GetSchema().Foreign)
+                    {
+                        var columnCount = CollectColumns(cnn, ref columns, new List<string>(), new List<string>(), new List<string>());
+                        if (columnCount == 0) return;
+                    }
+                    else 
+                    {
+                        var primaryKeyColumnNames = CollectPrimaryKeys(cnn, ref columns);
+                        var foreignKeyColumnNames = CollectForeignKeys(cnn, ref columns);
+                        var indexedColumnNames = CollectIndices(cnn, ref columns);
 
-                    var columnCount = CollectColumns(cnn, ref columns, primaryKeyColumnNames, foreignKeyColumnNames, indexedColumnNames);
-                    if (columnCount == 0) return;
+                        var columnCount = CollectColumns(cnn, ref columns, primaryKeyColumnNames, foreignKeyColumnNames, indexedColumnNames);
+                        if (columnCount == 0) return;
+                    }
 
                     var maxLength = columns.Max(c => c.ColumnName.Length);
                     columns.ForEach(c => c.AdjustColumnNameFixedWidth(maxLength));
@@ -61,8 +70,20 @@ namespace NppDB.PostgreSQL
             )
         {
             var count = 0;
-            String query = "SELECT * FROM information_schema.columns WHERE table_schema = '{0}' AND table_name = '{1}' ORDER BY ordinal_position;";
-            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
+            String query = "SELECT attr.attname AS column_name, " +
+                    "pg_catalog.format_type(attr.atttypid, attr.atttypmod) AS data_type, " +
+                    "pg_catalog.pg_get_expr(d.adbin, d.adrelid) AS column_default, " +
+                    "attr.attnotnull::TEXT AS is_nullable " +
+                    "FROM pg_catalog.pg_attribute AS attr " +
+                    "LEFT JOIN pg_catalog.pg_attrdef d ON (attr.attrelid, attr.attnum) = (d.adrelid, d.adnum) " +
+                    "JOIN pg_catalog.pg_class AS cls ON cls.oid = attr.attrelid " +
+                    "JOIN pg_catalog.pg_namespace AS ns ON ns.oid = cls.relnamespace " +
+                    "JOIN pg_catalog.pg_type AS tp ON tp.oid = attr.atttypid " +
+                    "WHERE ns.nspname = '{0}' " +
+                    "AND cls.relname = '{1}' " +
+                    "AND attr.attnum >= 1 " +
+                    "ORDER BY attr.attnum";
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
@@ -73,7 +94,7 @@ namespace NppDB.PostgreSQL
 
                         var options = 0;
 
-                        if (reader["is_nullable"].ToString() == "YES") options += 1;
+                        if (reader["is_nullable"].ToString() == "true") options += 1;
                         if (indexedColumnNames.Contains(columnName)) options += 10;
                         if (primaryKeyColumnNames.Contains(columnName)) options += 100;
                         if (foreignKeyColumnNames.Contains(columnName)) options += 1000;
@@ -88,23 +109,7 @@ namespace NppDB.PostgreSQL
         private string GetDataTypeName(NpgsqlDataReader reader)
         {
             var dataType = reader["data_type"].ToString();
-            var charMaxLen = reader["character_maximum_length"].ToString();
-            var numericPrecision = reader["numeric_precision"].ToString();
-            var numericScale = reader["numeric_scale"].ToString();
             var columnDefault = reader["column_default"].ToString();
-            if (!String.IsNullOrEmpty(charMaxLen))
-            {
-                dataType += $"({charMaxLen})";
-            } 
-            else if (!String.IsNullOrEmpty(numericPrecision) && dataType.Equals("numeric", StringComparison.OrdinalIgnoreCase))
-            {
-                dataType += $"({numericPrecision}";
-                if (!String.IsNullOrEmpty(numericScale))
-                {
-                    dataType += $",{numericScale}";
-                }
-                dataType += ")";
-            }
             if (!String.IsNullOrEmpty(columnDefault))
             {
                 dataType += $" => {columnDefault}";
@@ -123,7 +128,7 @@ namespace NppDB.PostgreSQL
                 "AND conrelid = '{1}'::regclass";
 
             var names = new List<string>();
-            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
@@ -155,7 +160,7 @@ namespace NppDB.PostgreSQL
 
             var names = new List<string>();
 
-            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
@@ -184,7 +189,7 @@ namespace NppDB.PostgreSQL
             var query = "select * from pg_catalog.pg_indexes where schemaname = '{0}' and tablename = '{1}';";
 
             var names = new List<string>();
-            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, getSchemaName(), Text), connection))
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
@@ -225,7 +230,7 @@ namespace NppDB.PostgreSQL
             {
                 host.Execute(NppDBCommandType.NewFile, null);
                 var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"SELECT * FROM {getSchemaName()}.{Text};";
+                var query = $"SELECT * FROM {GetSchemaName()}.{Text};";
                 host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
                 host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
                 host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
@@ -233,7 +238,7 @@ namespace NppDB.PostgreSQL
             menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
             {
                 var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"DROP {TypeName} {getSchemaName()}.{Text};";
+                var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
                 host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
             }));
             return menuList;
@@ -245,10 +250,14 @@ namespace NppDB.PostgreSQL
             return connect;
         }
 
-        private string getSchemaName()
+        private PostgreSQLSchema GetSchema()
         {
-            PostgreSQLSchema schema = Parent.Parent as PostgreSQLSchema;
-            return schema.Schema;
+            return Parent.Parent as PostgreSQLSchema;
+        }
+
+        private string GetSchemaName()
+        {
+            return GetSchema().Schema;
         }
     }
 }

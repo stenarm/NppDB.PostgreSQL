@@ -6,6 +6,7 @@ namespace NppDB.PostgreSQL
     public class PostgreSQLSchema : TreeNode, IRefreshable, IMenuProvider
     {
         public string Schema { get; set; }
+        public bool Foreign { get; set; }
         public PostgreSQLSchema()
         {
             SelectedImageKey = ImageKey = "Database";

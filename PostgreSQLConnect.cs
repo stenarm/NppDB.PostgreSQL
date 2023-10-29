@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
@@ -191,23 +192,8 @@ namespace NppDB.PostgreSQL
                 {
                     conn.Open();
                     Nodes.Clear();
-                    string query = "SELECT nspname FROM pg_namespace order by nspname;";
-                    using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
-                    {
-                        using (NpgsqlDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                string schemaName = reader["nspname"].ToString();
-                                //if (currentNS.ToLower().Contains(schemaName.ToLower()))
-                                //{
-                                //    schemaName += " (default)";
-                                //}
-                                var db = new PostgreSQLSchema { Text = schemaName, Schema = schemaName };
-                                Nodes.Add(db);
-                            }
-                        }
-                    }
+                    AddSchemas(conn);
+                    
                 }
                 catch (Exception ex)
                 {
@@ -218,6 +204,42 @@ namespace NppDB.PostgreSQL
                 {
                     TreeView.Enabled = true;
                     TreeView.Cursor = null;
+                }
+            }
+        }
+
+        internal List<String> GetForeignSchemas(NpgsqlConnection conn)
+        {
+            List<String> result = new List<String>();
+            string query = "SELECT DISTINCT foreign_table_schema FROM information_schema.foreign_tables;";
+            using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
+            {
+                using (NpgsqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string schemaName = reader["foreign_table_schema"].ToString();
+                        result.Add(schemaName);
+                    }
+                }
+            }
+            return result;
+        }
+
+        internal void AddSchemas(NpgsqlConnection conn) 
+        {
+            string query = "SELECT nspname FROM pg_namespace order by nspname;";
+            List<string> foreignSchemas = GetForeignSchemas(conn);
+            using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
+            {
+                using (NpgsqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string schemaName = reader["nspname"].ToString();
+                        var db = new PostgreSQLSchema { Text = schemaName, Schema = schemaName, Foreign = foreignSchemas.Contains(schemaName) };
+                        Nodes.Add(db);
+                    }
                 }
             }
         }
