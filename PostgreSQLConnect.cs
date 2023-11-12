@@ -26,6 +26,11 @@ namespace NppDB.PostgreSQL
         public string Password { set; get; }
         private NpgsqlConnection _connection;
 
+        public PostgreSQLConnect()
+        {
+            AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
+        }
+
         public bool IsOpened => _connection != null && _connection.State == ConnectionState.Open;
 
         internal INppDBCommandHost CommandHost { get; private set; }
@@ -202,6 +207,7 @@ namespace NppDB.PostgreSQL
                 }
                 finally
                 {
+                    conn.Close();
                     TreeView.Enabled = true;
                     TreeView.Cursor = null;
                 }

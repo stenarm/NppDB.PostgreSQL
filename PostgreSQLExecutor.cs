@@ -7,6 +7,7 @@ using Antlr4.Runtime;
 using System.IO;
 using System.Data;
 using Npgsql;
+using System.Windows.Forms;
 
 namespace NppDB.PostgreSQL
 {
@@ -62,7 +63,7 @@ namespace NppDB.PostgreSQL
                     string lastSql = null;
                     try
                     {
-                        using (var conn = _connector())
+                        using (NpgsqlConnection conn = _connector())
                         {
                             conn.Open();
                             foreach (var sql in sqlQueries)
@@ -71,11 +72,41 @@ namespace NppDB.PostgreSQL
                                 lastSql = sql;
 
                                 Console.WriteLine($"SQL: <{sql}>");
-                                var cmd = new NpgsqlCommand(sql, conn);
-                                var rd = cmd.ExecuteReader();
-                                var dt = new DataTable();
-                                dt.Load(rd);
-                                results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
+                                NpgsqlCommand cmd = new NpgsqlCommand(sql, conn);
+                                using (NpgsqlDataReader rd = cmd.ExecuteReader())
+                                {
+                                    DataTable dt = new DataTable();
+                                    for (int i = 0; i < rd.FieldCount; i++)
+                                    {
+                                        Type type = rd.GetFieldType(i);
+                                        // Handle DBNull type
+                                        if (type == typeof(System.DBNull))
+                                        {
+                                            type = typeof(string);
+                                        }
+                                        DataColumn dataColumn = new DataColumn(rd.GetName(i), type);
+                                        dt.Columns.Add(dataColumn);
+                                    }
+                                    while (rd.Read())
+                                    {
+                                        DataRow row = dt.NewRow();
+
+                                        for (int i = 0; i < rd.FieldCount; i++)
+                                        {
+                                            // Handle DBNull value
+                                            if (rd.IsDBNull(i))
+                                            {
+                                                row[i] = null;
+                                            }
+                                            else
+                                            {
+                                                row[i] = rd[i];
+                                            }
+                                        }
+                                        dt.Rows.Add(row);
+                                    }
+                                    results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
+                                }
                             }
                         }
                     }
@@ -87,8 +118,10 @@ namespace NppDB.PostgreSQL
                     }
                     callback(results);
                     _execTh = null;
-                }));
-            _execTh.IsBackground = true;
+                }))
+            {
+                IsBackground = true
+            };
             _execTh.Start();
         }
 

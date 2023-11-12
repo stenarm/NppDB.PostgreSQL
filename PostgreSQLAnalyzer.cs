@@ -1,6 +1,7 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using NppDB.Comm;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,7 +29,7 @@ namespace NppDB.PostgreSQL
                 Text = "",
                 Context = null
             });
-            return _CollectCommands(context, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, -1, null);
+            return _CollectCommands(context, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, -1, null, new List<StringBuilder>());
         }
 
         private static int _CollectCommands(
@@ -38,7 +39,8 @@ namespace NppDB.PostgreSQL
             int commandSeparatorTokenType,
             in IList<ParsedTreeCommand> commands,
             int enclosingCommandIndex,
-            in IList<StringBuilder> functionParams)
+            in IList<StringBuilder> functionParams,
+            in IList<StringBuilder> transactionStatementsEncountered)
         {
             if (context is PostgreSQLParser.RootContext && commands.Last().Context == null)
             {
@@ -52,8 +54,9 @@ namespace NppDB.PostgreSQL
                     var token = terminalNode.Symbol;
                     //_AnalyzeToken(token, commands.Last());
                     var tokenLength = token.StopIndex - token.StartIndex + 1;
-                    if (token.Type == TokenConstants.EOF || token.Type == commandSeparatorTokenType)
+                    if (transactionStatementsEncountered?.Count % 2 == 0 && (token.Type == TokenConstants.EOF || token.Type == commandSeparatorTokenType))
                     {
+
                         if (enclosingCommandIndex == -1 && (
                             caretPosition.Line > commands.Last().StartLine && caretPosition.Line < token.Line ||
                             caretPosition.Line == commands.Last().StartLine && caretPosition.Column >= commands.Last().StartColumn && (caretPosition.Line < token.Line || caretPosition.Column <= token.Column) ||
@@ -93,11 +96,23 @@ namespace NppDB.PostgreSQL
                 else
                 {
                     var ctx = child as RuleContext;
+
+
+                    if (ctx?.RuleIndex == PostgreSQLParser.RULE_transactionstmt)
+                    {
+                        var statements = new string[] { "BEGIN", "END" };
+                        if (statements.Any(s => ctx?.GetText().IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0))
+                        {
+                            transactionStatementsEncountered?.Add(new StringBuilder(ctx?.GetText()));
+                        }
+                    };
+
+
                     if (ctx?.RuleIndex == PostgreSQLParser.RULE_empty_grouping_set) continue;
 
                     if (ctx?.RuleIndex == PostgreSQLParser.RULE_indirection_el)
                     {
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, "", commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams);
+                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, "", commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
                         if (functionParams is null)
                             commands.Last().Text += tokenSeparator;
                         else
@@ -106,7 +121,7 @@ namespace NppDB.PostgreSQL
                     else if (ctx?.RuleIndex == PostgreSQLParser.RULE_ruleactionlist)
                     {
                         var p = new List<StringBuilder> { new StringBuilder() };
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, p);
+                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, p, transactionStatementsEncountered);
                         var functionName = p[0].ToString().ToLower();
                         p.RemoveAt(0);
                         var functionCallString = "";
@@ -131,7 +146,7 @@ namespace NppDB.PostgreSQL
                     }
                     else
                     {
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams);
+                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
                         if (!(functionParams is null) && (ctx?.RuleIndex == PostgreSQLParser.RULE_colid || ctx?.RuleIndex == PostgreSQLParser.RULE_stmtblock))
                         {
                             functionParams.Last().Length -= tokenSeparator.Length;

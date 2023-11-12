@@ -52,6 +52,7 @@ namespace NppDB.PostgreSQL
                 }
                 finally
                 {
+                    cnn.Close();
                     TreeView.Enabled = true;
                     TreeView.Cursor = null;
                 }
