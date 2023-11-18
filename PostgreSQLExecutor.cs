@@ -84,7 +84,16 @@ namespace NppDB.PostgreSQL
                                         {
                                             type = typeof(string);
                                         }
-                                        DataColumn dataColumn = new DataColumn(rd.GetName(i), type);
+                                        int existingColumnCount = 0;
+                                        foreach (DataColumn col in dt.Columns) 
+                                        {
+                                            if (col.ColumnName.Trim().StartsWith(rd.GetName(i))) 
+                                            {
+                                                existingColumnCount++;
+                                            }
+                                        }
+                                        DataColumn dataColumn = new DataColumn(rd.GetName(i) + (existingColumnCount == -0 ? "" : "(" + existingColumnCount + ")"), type);
+                                        dataColumn.Caption = rd.GetName(i);
                                         dt.Columns.Add(dataColumn);
                                     }
                                     while (rd.Read())
@@ -96,7 +105,7 @@ namespace NppDB.PostgreSQL
                                             // Handle DBNull value
                                             if (rd.IsDBNull(i))
                                             {
-                                                row[i] = null;
+                                                row[i] = DBNull.Value;
                                             }
                                             else
                                             {

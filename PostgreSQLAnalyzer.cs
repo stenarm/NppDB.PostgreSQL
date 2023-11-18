@@ -32,6 +32,32 @@ namespace NppDB.PostgreSQL
             return _CollectCommands(context, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, -1, null, new List<StringBuilder>());
         }
 
+        private static void _AnalyzeIdentifier(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
+        {
+            if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"') 
+            {
+                command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
+            }
+        }
+
+        private static void _AnalyzeRuleContext(RuleContext context, ParsedTreeCommand command)
+        {
+            switch (context.RuleIndex)
+            {
+                case PostgreSQLParser.RULE_simple_select_pramary:
+                    {
+                        if (context is PostgreSQLParser.Simple_select_pramaryContext ctx)
+                        {
+                            if (ctx.distinct_clause() != null && ctx.group_clause() != null)
+                            {
+                                command.AddWarning(ctx, ParserMessageType.DISTINCT_KEYWORD_WITH_GROUP_BY_CLAUSE);
+                            }
+                        }
+                        break;
+                    }
+            }
+        }
+
         private static int _CollectCommands(
             RuleContext context,
             CaretPosition caretPosition,
@@ -46,13 +72,17 @@ namespace NppDB.PostgreSQL
             {
                 commands.Last().Context = context; // base starting branch
             }
+            _AnalyzeRuleContext(context, commands.Last());
             for (var i = 0; i < context.ChildCount; ++i)
             {
                 var child = context.GetChild(i);
+                if (child is PostgreSQLParser.IdentifierContext identifier) 
+                {
+                    _AnalyzeIdentifier(identifier, commands.Last());
+                }
                 if (child is ITerminalNode terminalNode)
                 {
                     var token = terminalNode.Symbol;
-                    //_AnalyzeToken(token, commands.Last());
                     var tokenLength = token.StopIndex - token.StartIndex + 1;
                     if (transactionStatementsEncountered?.Count % 2 == 0 && (token.Type == TokenConstants.EOF || token.Type == commandSeparatorTokenType))
                     {

@@ -1233,7 +1233,7 @@ am_type
    ;
 
 createtrigstmt
-   : CREATE TRIGGER name triggeractiontime triggerevents ON qualified_name triggerreferencing triggerforspec triggerwhen EXECUTE function_or_procedure func_name OPEN_PAREN triggerfuncargs CLOSE_PAREN
+   : CREATE opt_or_replace TRIGGER name triggeractiontime triggerevents ON qualified_name triggerreferencing triggerforspec triggerwhen EXECUTE function_or_procedure func_name OPEN_PAREN triggerfuncargs CLOSE_PAREN
    | CREATE CONSTRAINT TRIGGER name AFTER triggerevents ON qualified_name optconstrfromtable constraintattributespec FOR EACH ROW triggerwhen EXECUTE function_or_procedure func_name OPEN_PAREN triggerfuncargs CLOSE_PAREN
    ;
 
@@ -1866,7 +1866,7 @@ opt_nulls_order
    ;
 
 createfunctionstmt
-   : CREATE opt_or_replace (FUNCTION | PROCEDURE) func_name func_args_with_defaults
+   : CREATE opt_or_replace (FUNCTION | PROCEDURE | TRIGGER) func_name func_args_with_defaults
      (
         RETURNS (func_return | TABLE OPEN_PAREN table_func_column_list CLOSE_PAREN)
      )?
