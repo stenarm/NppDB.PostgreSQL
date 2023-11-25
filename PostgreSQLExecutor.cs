@@ -48,10 +48,13 @@ namespace NppDB.PostgreSQL
     {
         private Thread _execTh;
         private readonly Func<NpgsqlConnection> _connector;
+        private NpgsqlConnection _connection;
 
         public PostgreSQLExecutor(Func<NpgsqlConnection> connector)
         {
             _connector = connector;
+            _connection = connector();
+            _connection.Open();
         }
 
         public void Execute(IList<string> sqlQueries, Action<IList<CommandResult>> callback)
@@ -59,63 +62,63 @@ namespace NppDB.PostgreSQL
             _execTh = new Thread(new ThreadStart(
                 delegate
                 {
+                    if (_connection.State == ConnectionState.Closed) 
+                    {
+                        _connection.Open();
+                    }
                     var results = new List<CommandResult>();
                     string lastSql = null;
                     try
                     {
-                        using (NpgsqlConnection conn = _connector())
+                        foreach (var sql in sqlQueries)
                         {
-                            conn.Open();
-                            foreach (var sql in sqlQueries)
-                            {
-                                if (string.IsNullOrWhiteSpace(sql)) continue;
-                                lastSql = sql;
+                            if (string.IsNullOrWhiteSpace(sql)) continue;
+                            lastSql = sql;
 
-                                Console.WriteLine($"SQL: <{sql}>");
-                                NpgsqlCommand cmd = new NpgsqlCommand(sql, conn);
-                                using (NpgsqlDataReader rd = cmd.ExecuteReader())
+                            Console.WriteLine($"SQL: <{sql}>");
+                            NpgsqlCommand cmd = new NpgsqlCommand(sql, _connection);
+                            using (NpgsqlDataReader rd = cmd.ExecuteReader())
+                            {
+                                DataTable dt = new DataTable();
+                                for (int i = 0; i < rd.FieldCount; i++)
                                 {
-                                    DataTable dt = new DataTable();
+                                    Type type = rd.GetFieldType(i);
+                                    // Handle DBNull type
+                                    if (type == typeof(System.DBNull))
+                                    {
+                                        type = typeof(string);
+                                    }
+                                    int existingColumnCount = 0;
+                                    foreach (DataColumn col in dt.Columns)
+                                    {
+                                        if (col.ColumnName.Trim().StartsWith(rd.GetName(i)))
+                                        {
+                                            existingColumnCount++;
+                                        }
+                                    }
+                                    DataColumn dataColumn = new DataColumn(rd.GetName(i) + (existingColumnCount == -0 ? "" : "(" + existingColumnCount + ")"), type);
+                                    dataColumn.Caption = rd.GetName(i);
+                                    dt.Columns.Add(dataColumn);
+                                }
+                                while (rd.Read())
+                                {
+                                    DataRow row = dt.NewRow();
+
                                     for (int i = 0; i < rd.FieldCount; i++)
                                     {
-                                        Type type = rd.GetFieldType(i);
-                                        // Handle DBNull type
-                                        if (type == typeof(System.DBNull))
+                                        // Handle DBNull value
+                                        if (rd.IsDBNull(i))
                                         {
-                                            type = typeof(string);
+                                            row[i] = DBNull.Value;
                                         }
-                                        int existingColumnCount = 0;
-                                        foreach (DataColumn col in dt.Columns) 
+                                        else
                                         {
-                                            if (col.ColumnName.Trim().StartsWith(rd.GetName(i))) 
-                                            {
-                                                existingColumnCount++;
-                                            }
+                                            row[i] = rd[i];
                                         }
-                                        DataColumn dataColumn = new DataColumn(rd.GetName(i) + (existingColumnCount == -0 ? "" : "(" + existingColumnCount + ")"), type);
-                                        dataColumn.Caption = rd.GetName(i);
-                                        dt.Columns.Add(dataColumn);
                                     }
-                                    while (rd.Read())
-                                    {
-                                        DataRow row = dt.NewRow();
-
-                                        for (int i = 0; i < rd.FieldCount; i++)
-                                        {
-                                            // Handle DBNull value
-                                            if (rd.IsDBNull(i))
-                                            {
-                                                row[i] = DBNull.Value;
-                                            }
-                                            else
-                                            {
-                                                row[i] = rd[i];
-                                            }
-                                        }
-                                        dt.Rows.Add(row);
-                                    }
-                                    results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
+                                    dt.Rows.Add(row);
                                 }
+                                results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
                             }
                         }
                     }

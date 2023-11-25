@@ -75,6 +75,7 @@ namespace NppDB.PostgreSQL
                 dlg.Database = Database;
                 dlg.ConnectionName = ConnectionName;
                 dlg.SetConnNameVisible(false);
+                dlg.FocusPassword();
             }
             if (dlg.ShowDialog() != DialogResult.OK) return false;
             SaveConnectionDetails = dlg.SaveConnectionDetails;

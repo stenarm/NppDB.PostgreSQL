@@ -9,8 +9,8 @@ namespace NppDB.PostgreSQL
     {
         public PostgreSQLTableGroup()
         {
-            Query = "SELECT table_name FROM information_schema.tables WHERE table_schema='{0}' AND table_type in ('BASE TABLE', 'FOREIGN') ORDER BY table_name";
-            Text = "Tables";
+            Query = "SELECT table_name FROM information_schema.tables WHERE table_schema='{0}' AND table_type in ('BASE TABLE') ORDER BY table_name";
+            Text = "Base Tables";
             SelectedImageKey = ImageKey = "Group";
         }
 

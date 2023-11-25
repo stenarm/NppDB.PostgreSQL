@@ -156,7 +156,9 @@
     <Compile Include="PostgreSQLParserBase.cs" />
     <Compile Include="PostgreSQLParserBaseListener.cs" />
     <Compile Include="PostgreSQLParserListener.cs" />
+    <Compile Include="PostgreSQLForeignTableGroup.cs" />
     <Compile Include="PostgreSQLView.cs" />
+    <Compile Include="PostgreSQLMaterializedViewGroup.cs" />
     <Compile Include="PostgreSQLViewGroup.cs" />
     <Compile Include="PostgreSQLTable.cs" />
     <Compile Include="PostgreSQLTableGroup.cs" />

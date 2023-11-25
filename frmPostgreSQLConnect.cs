@@ -108,5 +108,13 @@ namespace NppDB.PostgreSQL
             this.lblConnName.Visible = visible;
             this.txtConnName.Visible = visible;
         }
+
+        public void FocusPassword()
+        {
+            this.txtPassword.TabIndex = 0;
+            this.btnOK.TabIndex = 1;
+            this.btnCancel.TabIndex = 2;
+            this.btnTestConnection.TabIndex = 3;
+        }
     }
 }

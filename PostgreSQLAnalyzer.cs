@@ -34,10 +34,26 @@ namespace NppDB.PostgreSQL
 
         private static void _AnalyzeIdentifier(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
         {
-            if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"') 
+            if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"')
             {
                 command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
             }
+        }
+
+        private static int CountTables(IList<PostgreSQLParser.Table_refContext> ctxs, int count)
+        {
+            if (ctxs != null && ctxs.Count > 0) 
+            {
+                foreach (var ctx in ctxs) 
+                {
+                    count++;
+                    if (ctx._tables != null && ctx._tables.Count > 0) 
+                    {
+                        count = CountTables(ctx._tables, count);
+                    }
+                }
+            }
+            return count;
         }
 
         private static void _AnalyzeRuleContext(RuleContext context, ParsedTreeCommand command)
@@ -52,6 +68,24 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.DISTINCT_KEYWORD_WITH_GROUP_BY_CLAUSE);
                             }
+                            if (ctx.opt_target_list()?.target_list()?.target_el() != null 
+                                && ctx.opt_target_list()?.target_list()?.target_el().Length > 0 
+                                && ctx.opt_target_list()?.target_list()?.target_el()[0] is PostgreSQLParser.Target_starContext)
+                            {
+                                if (ctx.from_clause()?.from_list()?._tables != null && CountTables(ctx.from_clause().from_list()._tables, 0) > 1) 
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.SELECT_ALL_WITH_MULTIPLE_JOINS);
+                                }
+                                
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_select_clause: 
+                    {
+                        if (context is PostgreSQLParser.Select_clauseContext ctx)
+                        {
+                            //if (ctx.UNION != null)
                         }
                         break;
                     }
@@ -76,7 +110,7 @@ namespace NppDB.PostgreSQL
             for (var i = 0; i < context.ChildCount; ++i)
             {
                 var child = context.GetChild(i);
-                if (child is PostgreSQLParser.IdentifierContext identifier) 
+                if (child is PostgreSQLParser.IdentifierContext identifier)
                 {
                     _AnalyzeIdentifier(identifier, commands.Last());
                 }

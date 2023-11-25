@@ -67750,6 +67750,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 	}
 
 	public partial class From_listContext : ParserRuleContext {
+		public Table_refContext _table_ref;
+		public IList<Table_refContext> _tables = new List<Table_refContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public Non_ansi_joinContext non_ansi_join() {
 			return GetRuleContext<Non_ansi_joinContext>(0);
 		}
@@ -67800,7 +67802,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				EnterOuterAlt(_localctx, 2);
 				{
 				State = 8282;
-				table_ref();
+				_localctx._table_ref = table_ref();
+				_localctx._tables.Add(_localctx._table_ref);
 				State = 8287;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,467,Context);
@@ -67811,7 +67814,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 						State = 8283;
 						Match(COMMA);
 						State = 8284;
-						table_ref();
+						_localctx._table_ref = table_ref();
+						_localctx._tables.Add(_localctx._table_ref);
 						}
 						} 
 					}
@@ -67835,6 +67839,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 	}
 
 	public partial class Non_ansi_joinContext : ParserRuleContext {
+		public Table_refContext _table_ref;
+		public IList<Table_refContext> _tables = new List<Table_refContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public Table_refContext[] table_ref() {
 			return GetRuleContexts<Table_refContext>();
 		}
@@ -67871,7 +67877,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 8292;
-			table_ref();
+			_localctx._table_ref = table_ref();
+			_localctx._tables.Add(_localctx._table_ref);
 			State = 8295;
 			ErrorHandler.Sync(this);
 			_alt = 1;
@@ -67883,7 +67890,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					State = 8293;
 					Match(COMMA);
 					State = 8294;
-					table_ref();
+					_localctx._table_ref = table_ref();
+					_localctx._tables.Add(_localctx._table_ref);
 					}
 					}
 					break;
@@ -67908,6 +67916,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 	}
 
 	public partial class Table_refContext : ParserRuleContext {
+		public Table_refContext _table_ref;
+		public IList<Table_refContext> _tables = new List<Table_refContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public Relation_exprContext relation_expr() {
 			return GetRuleContext<Relation_exprContext>(0);
 		}
@@ -67928,13 +67938,13 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LATERAL_P() { return GetToken(PostgreSQLParser.LATERAL_P, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode OPEN_PAREN() { return GetToken(PostgreSQLParser.OPEN_PAREN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode CLOSE_PAREN() { return GetToken(PostgreSQLParser.CLOSE_PAREN, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public Table_refContext[] table_ref() {
 			return GetRuleContexts<Table_refContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public Table_refContext table_ref(int i) {
 			return GetRuleContext<Table_refContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode CLOSE_PAREN() { return GetToken(PostgreSQLParser.CLOSE_PAREN, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] CROSS() { return GetTokens(PostgreSQLParser.CROSS); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode CROSS(int i) {
 			return GetToken(PostgreSQLParser.CROSS, i);
@@ -68072,7 +68082,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				State = 8325;
 				Match(OPEN_PAREN);
 				State = 8326;
-				table_ref();
+				_localctx._table_ref = table_ref();
+				_localctx._tables.Add(_localctx._table_ref);
 				State = 8343;
 				ErrorHandler.Sync(this);
 				switch (TokenStream.LA(1)) {
@@ -68083,7 +68094,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					State = 8328;
 					Match(JOIN);
 					State = 8329;
-					table_ref();
+					_localctx._table_ref = table_ref();
+					_localctx._tables.Add(_localctx._table_ref);
 					}
 					break;
 				case NATURAL:
@@ -68103,7 +68115,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					State = 8334;
 					Match(JOIN);
 					State = 8335;
-					table_ref();
+					_localctx._table_ref = table_ref();
+					_localctx._tables.Add(_localctx._table_ref);
 					}
 					break;
 				case FULL:
@@ -68125,7 +68138,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					State = 8339;
 					Match(JOIN);
 					State = 8340;
-					table_ref();
+					_localctx._table_ref = table_ref();
+					_localctx._tables.Add(_localctx._table_ref);
 					State = 8341;
 					join_qual();
 					}
@@ -68158,7 +68172,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 						State = 8351;
 						Match(JOIN);
 						State = 8352;
-						table_ref();
+						_localctx._table_ref = table_ref();
+						_localctx._tables.Add(_localctx._table_ref);
 						}
 						break;
 					case NATURAL:
@@ -68178,7 +68193,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 						State = 8357;
 						Match(JOIN);
 						State = 8358;
-						table_ref();
+						_localctx._table_ref = table_ref();
+						_localctx._tables.Add(_localctx._table_ref);
 						}
 						break;
 					case FULL:
@@ -68200,7 +68216,8 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 						State = 8362;
 						Match(JOIN);
 						State = 8363;
-						table_ref();
+						_localctx._table_ref = table_ref();
+						_localctx._tables.Add(_localctx._table_ref);
 						State = 8364;
 						join_qual();
 						}

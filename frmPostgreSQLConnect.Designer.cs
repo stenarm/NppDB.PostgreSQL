@@ -53,7 +53,7 @@
             this.txtServer.Location = new System.Drawing.Point(280, 78);
             this.txtServer.Name = "txtServer";
             this.txtServer.Size = new System.Drawing.Size(225, 20);
-            this.txtServer.TabIndex = 1;
+            this.txtServer.TabIndex = 11;
             // 
             // lblServer
             // 
@@ -87,7 +87,7 @@
             this.txtUsername.Location = new System.Drawing.Point(280, 204);
             this.txtUsername.Name = "txtUsername";
             this.txtUsername.Size = new System.Drawing.Size(225, 20);
-            this.txtUsername.TabIndex = 4;
+            this.txtUsername.TabIndex = 14;
             // 
             // lblPassword
             // 
@@ -103,14 +103,14 @@
             this.txtPassword.Location = new System.Drawing.Point(280, 246);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.Size = new System.Drawing.Size(225, 20);
-            this.txtPassword.TabIndex = 5;
+            this.txtPassword.TabIndex = 15;
             // 
             // btnOK
             // 
             this.btnOK.Location = new System.Drawing.Point(279, 303);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
-            this.btnOK.TabIndex = 6;
+            this.btnOK.TabIndex = 16;
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
@@ -120,7 +120,7 @@
             this.btnCancel.Location = new System.Drawing.Point(428, 302);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
-            this.btnCancel.TabIndex = 7;
+            this.btnCancel.TabIndex = 17;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
@@ -139,7 +139,7 @@
             this.txtDatabase.Location = new System.Drawing.Point(280, 162);
             this.txtDatabase.Name = "txtDatabase";
             this.txtDatabase.Size = new System.Drawing.Size(225, 20);
-            this.txtDatabase.TabIndex = 3;
+            this.txtDatabase.TabIndex = 13;
             // 
             // cbxShowPwd
             // 
@@ -173,7 +173,7 @@
             0});
             this.nmrPort.Name = "nmrPort";
             this.nmrPort.Size = new System.Drawing.Size(225, 20);
-            this.nmrPort.TabIndex = 2;
+            this.nmrPort.TabIndex = 12;
             this.nmrPort.Value = new decimal(new int[] {
             5432,
             0,
@@ -194,14 +194,14 @@
             this.txtConnName.Location = new System.Drawing.Point(280, 36);
             this.txtConnName.Name = "txtConnName";
             this.txtConnName.Size = new System.Drawing.Size(225, 20);
-            this.txtConnName.TabIndex = 0;
+            this.txtConnName.TabIndex = 10;
             // 
             // btnTestConnection
             // 
             this.btnTestConnection.Location = new System.Drawing.Point(280, 343);
             this.btnTestConnection.Name = "btnTestConnection";
             this.btnTestConnection.Size = new System.Drawing.Size(225, 23);
-            this.btnTestConnection.TabIndex = 999;
+            this.btnTestConnection.TabIndex = 18;
             this.btnTestConnection.Text = "Test connection";
             this.btnTestConnection.UseVisualStyleBackColor = true;
             this.btnTestConnection.Click += new System.EventHandler(this.btnTestConnection_Click);

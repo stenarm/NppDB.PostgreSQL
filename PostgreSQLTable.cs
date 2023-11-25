@@ -12,7 +12,7 @@ namespace NppDB.PostgreSQL
     public class PostgreSQLTable : TreeNode, IRefreshable, IMenuProvider
     {
         public string Definition { get; set; }
-        protected string TypeName { get; set; } = "TABLE";
+        public string TypeName { get; set; } = "TABLE";
         public PostgreSQLTable()
         {
             SelectedImageKey = ImageKey = "Table";
@@ -227,24 +227,42 @@ namespace NppDB.PostgreSQL
             menuList.Items.Add(new ToolStripSeparator());
 
             var host = connect.CommandHost;
+            string schemaName = GetSchemaName();
             menuList.Items.Add(new ToolStripButton($"SELECT * FROM {Text}", null, (s, e) =>
             {
                 host.Execute(NppDBCommandType.NewFile, null);
                 var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"SELECT * FROM {GetSchemaName()}.{Text};";
+                var query = $"SELECT * FROM {schemaName}.{Text};";
                 host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
                 host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
                 host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
             }));
-            string schemaName = GetSchemaName();
-            if (schemaName != "information_schema" && schemaName != "pg_catalog") 
+            if (TypeName == "MATERIALIZED_VIEW")
             {
-                menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton($"REFRESH MATERIALIZED VIEW", null, (s, e) =>
                 {
+                    var query = $"REFRESH MATERIALIZED VIEW {Text};";
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                    var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
                     host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
                 }));
+                menuList.Items.Add(new ToolStripButton($"DROP MATERIALIZED VIEW", null, (s, e) =>
+                {
+                    var query = $"DROP MATERIALIZED VIEW {Text};";
+                    var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                    host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                }));
+            }
+            else if (TypeName != "FOREIGN_TABLE") 
+            {
+                if (schemaName != "information_schema" && schemaName != "pg_catalog")
+                {
+                    menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                    {
+                        var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
+                        var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                        host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                    }));
+                }
             }
             // Needed an invisible button so previous buttons' text isn't cut off
             ToolStripButton dummy = new ToolStripButton("Dummy", null, (s, e) => { });
