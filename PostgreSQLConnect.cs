@@ -25,11 +25,13 @@ namespace NppDB.PostgreSQL
         [XmlIgnore]
         public string Password { set; get; }
         private NpgsqlConnection _connection;
+        private List<PostgreSQLExecutor> Executors { set; get; }
 
         public PostgreSQLConnect()
         {
             // Npgsql is currently unable to rewrite SQLs which have semicolons inside the query, so this needs to be disabled
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
+            Executors = new List<PostgreSQLExecutor>();
         }
 
         public bool IsOpened => _connection != null && _connection.State == ConnectionState.Open;
@@ -54,7 +56,9 @@ namespace NppDB.PostgreSQL
 
         public ISQLExecutor CreateSQLExecutor()
         {
-            return new PostgreSQLExecutor(GetConnection);
+            PostgreSQLExecutor executor = new PostgreSQLExecutor(GetConnection);
+            Executors.Add(executor);
+            return executor;
         }
 
         internal NpgsqlConnection GetConnection()
@@ -141,6 +145,12 @@ namespace NppDB.PostgreSQL
 
         public void Disconnect()
         {
+            foreach (PostgreSQLExecutor executor in Executors)
+            {
+                executor.Stop();
+            }
+            Executors.Clear();
+            NpgsqlConnection.ClearAllPools();
             if (_connection == null || _connection.State == ConnectionState.Closed) return;
 
             _connection.Close();

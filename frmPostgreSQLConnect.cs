@@ -85,7 +85,12 @@ namespace NppDB.PostgreSQL
             {
                 MessageBox.Show($"Unable to connect to server {ex.Message}", "Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
-            finally { connection.Close(); }
+            finally 
+            {
+                connection.Close();
+                connection.Dispose();
+                NpgsqlConnection.ClearPool(connection);
+            }
         }
 
         private void cbxShowPwd_CheckedChanged(object sender, EventArgs e)

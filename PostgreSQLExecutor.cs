@@ -190,7 +190,12 @@ namespace NppDB.PostgreSQL
 
         public void Stop()
         {
-            if (!CanStop()) return;
+            //if (!CanStop()) return;
+            if (_connection != null )
+            {
+                _connection.Close();
+                _connection.Dispose();
+            }
             _execTh?.Abort();
             _execTh = null;
         }
