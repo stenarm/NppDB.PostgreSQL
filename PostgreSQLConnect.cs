@@ -28,6 +28,7 @@ namespace NppDB.PostgreSQL
 
         public PostgreSQLConnect()
         {
+            // Npgsql is currently unable to rewrite SQLs which have semicolons inside the query, so this needs to be disabled
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
         }
 
@@ -117,7 +118,8 @@ namespace NppDB.PostgreSQL
                 Username = Account,
                 Host = ServerAddress,
                 Port = int.Parse(Port.ToString()),
-                Database = Database
+                Database = Database,
+                IncludeErrorDetail = true,
             };
             return builder;
         }
