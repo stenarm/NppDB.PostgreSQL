@@ -53,8 +53,15 @@ namespace NppDB.PostgreSQL
         public PostgreSQLExecutor(Func<NpgsqlConnection> connector)
         {
             _connector = connector;
-            _connection = connector();
-            _connection.Open();
+            if (connector == null) 
+            {
+                _connection = null;
+            }
+            else 
+            {
+                _connection = connector();
+                _connection.Open();
+            }
         }
 
         public void Execute(IList<string> sqlQueries, Action<IList<CommandResult>> callback)
@@ -190,7 +197,6 @@ namespace NppDB.PostgreSQL
 
         public void Stop()
         {
-            //if (!CanStop()) return;
             if (_connection != null )
             {
                 _connection.Close();

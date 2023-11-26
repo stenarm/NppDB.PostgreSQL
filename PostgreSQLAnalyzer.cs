@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
+using static NppDB.PostgreSQL.PostgreSQLAnalyzerHelper;
+using static PostgreSQLParser;
 
 namespace NppDB.PostgreSQL
 {
@@ -32,30 +35,6 @@ namespace NppDB.PostgreSQL
             return _CollectCommands(context, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, -1, null, new List<StringBuilder>());
         }
 
-        private static void _AnalyzeIdentifier(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
-        {
-            if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"')
-            {
-                command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
-            }
-        }
-
-        private static int CountTables(IList<PostgreSQLParser.Table_refContext> ctxs, int count)
-        {
-            if (ctxs != null && ctxs.Count > 0) 
-            {
-                foreach (var ctx in ctxs) 
-                {
-                    count++;
-                    if (ctx._tables != null && ctx._tables.Count > 0) 
-                    {
-                        count = CountTables(ctx._tables, count);
-                    }
-                }
-            }
-            return count;
-        }
-
         private static void _AnalyzeRuleContext(RuleContext context, ParsedTreeCommand command)
         {
             switch (context.RuleIndex)
@@ -64,19 +43,38 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.Simple_select_pramaryContext ctx)
                         {
-                            if (ctx.distinct_clause() != null && ctx.group_clause() != null)
+                            int tableCount = CountTablesInFromClause(ctx);
+                            int columnCount = CountColumns(ctx);
+                            int groupingTermCount = CountGroupingTerms(ctx);
+                            bool hasGroupByClause = HasGroupByClause(ctx);
+                            if (!hasGroupByClause)
+                            {
+                                if (tableCount > 1 && HasAggregateFunction(ctx))
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_WITHOUT_GROUP_BY_CLAUSE);
+                                }
+                            }
+                            else if (hasGroupByClause)
+                            {
+                                if (columnCount != 0 && columnCount - 1 != groupingTermCount && columnCount != groupingTermCount)
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_IN_GROUP_BY_CLAUSE);
+                                }
+                            }
+                            if (HasOuterJoin(ctx) && HasSpecificAggregateFunction(ctx, "count"))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.COUNT_FUNCTION_WITH_OUTER_JOIN);
+                            }
+                            if (HasDistinctClause(ctx) && hasGroupByClause)
                             {
                                 command.AddWarning(ctx, ParserMessageType.DISTINCT_KEYWORD_WITH_GROUP_BY_CLAUSE);
                             }
-                            if (ctx.opt_target_list()?.target_list()?.target_el() != null 
-                                && ctx.opt_target_list()?.target_list()?.target_el().Length > 0 
-                                && ctx.opt_target_list()?.target_list()?.target_el()[0] is PostgreSQLParser.Target_starContext)
+                            if (HasSelectStar(ctx))
                             {
-                                if (ctx.from_clause()?.from_list()?._tables != null && CountTables(ctx.from_clause().from_list()._tables, 0) > 1) 
+                                if (tableCount > 1)
                                 {
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_WITH_MULTIPLE_JOINS);
                                 }
-                                
                             }
                         }
                         break;
@@ -85,7 +83,30 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.Select_clauseContext ctx)
                         {
-                            //if (ctx.UNION != null)
+                            if (ctx.union != null && ctx.first_intersect != null && ctx.second_intersect != null) 
+                            {
+                                if (IsSelectPramaryContextSelectStar(ctx.first_intersect?.simple_select_pramary()) || IsSelectPramaryContextSelectStar(ctx.second_intersect?.simple_select_pramary()))
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_insertstmt: 
+                    {
+                        if (context is PostgreSQLParser.InsertstmtContext ctx)
+                        {
+                            int insertColumnCount = CountInsertColumns(ctx);
+                            if (insertColumnCount == 0 && ctx?.insert_rest()?.OVERRIDING() == null && ctx?.insert_rest()?.DEFAULT() == null && ctx?.insert_rest()?.VALUES() == null)
+                            {
+                                command.AddWarning(ctx, ParserMessageType.INSERT_STATEMENT_WITHOUT_COLUMN_NAMES);
+                            }
+                            Simple_select_pramaryContext select_PramaryContext = FindSelectPramaryContext(ctx);
+                            if (select_PramaryContext != null && HasSelectStar(select_PramaryContext))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_INSERT_STATEMENT);
+                            }
                         }
                         break;
                     }

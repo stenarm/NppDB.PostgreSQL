@@ -2767,7 +2767,7 @@ override_kind
    ;
 
 insert_column_list
-   : insert_column_item (COMMA insert_column_item)*
+   : insert_columns+=insert_column_item (COMMA insert_columns+=insert_column_item)*
    ;
 
 insert_column_item
@@ -2908,7 +2908,7 @@ select_no_parens
    ;
 
 select_clause
-   : simple_select_intersect ((UNION | EXCEPT) all_or_distinct simple_select_intersect)*
+   : first_intersect=simple_select_intersect ((union=UNION | EXCEPT) all_or_distinct second_intersect=simple_select_intersect)*
    ;
 
 simple_select_intersect
@@ -3061,7 +3061,7 @@ group_clause
    ;
 
 group_by_list
-   : group_by_item (COMMA group_by_item)*
+   : grouping_term+=group_by_item (COMMA grouping_term+=group_by_item)*
    ;
 
 group_by_item
