@@ -53,6 +53,7 @@ namespace NppDB.PostgreSQL
                                 {
                                     command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_WITHOUT_GROUP_BY_CLAUSE);
                                 }
+
                             }
                             else if (hasGroupByClause)
                             {
@@ -79,6 +80,21 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
+                case PostgreSQLParser.RULE_having_clause: 
+                    {
+                        if (context is PostgreSQLParser.Having_clauseContext ctx)
+                        {
+                            if (!HasAggregateFunction(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
+                            }
+                            if (HasAndOrExprWithoutParens(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
+                            }
+                        }
+                        break;
+                    }
                 case PostgreSQLParser.RULE_select_clause: 
                     {
                         if (context is PostgreSQLParser.Select_clauseContext ctx)
@@ -89,6 +105,18 @@ namespace NppDB.PostgreSQL
                                 {
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
                                 }
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_sortby: 
+                    {
+                        if (context is PostgreSQLParser.SortbyContext ctx)
+                        {
+                            AexprconstContext aexprconst = (AexprconstContext) FindFirstTargetType(ctx, typeof(AexprconstContext));
+                            if (aexprconst != null && !string.IsNullOrEmpty(aexprconst.GetText()))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.ORDERING_BY_ORDINAL);
                             }
                         }
                         break;
