@@ -3,6 +3,7 @@ using Antlr4.Runtime.Tree;
 using NppDB.Comm;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
@@ -44,22 +45,40 @@ namespace NppDB.PostgreSQL
                         if (context is PostgreSQLParser.Simple_select_pramaryContext ctx)
                         {
                             int tableCount = CountTablesInFromClause(ctx);
-                            int columnCount = CountColumns(ctx);
+                            Target_elContext[] columns = GetColumns(ctx);
+                            int columnCount = columns.Count();
                             int groupingTermCount = CountGroupingTerms(ctx);
                             bool hasGroupByClause = HasGroupByClause(ctx);
+                            int whereCount = CountWheres(ctx, 0);
+                            int whereClauseCount = CountWhereClauses(ctx);
+                            if (HasMissingColumnAlias(columns))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_ALIAS_IN_SELECT_CLAUSE);
+                            }
+                            if (HasWhereClause(ctx.where_clause()) && whereCount > whereClauseCount)
+                            {
+                                command.AddWarning(ctx.where_clause(), ParserMessageType.MULTIPLE_WHERE_USED);
+                            }
+                            if (HasDuplicateColumns(columns))
+                            {
+                                command.AddWarning(columns[0], ParserMessageType.DUPLICATE_SELECTED_COLUMN_IN_SELECT_CLAUSE);
+                            }
                             if (!hasGroupByClause)
                             {
                                 if (tableCount > 1 && HasAggregateFunction(ctx))
                                 {
                                     command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_WITHOUT_GROUP_BY_CLAUSE);
                                 }
-
                             }
                             else if (hasGroupByClause)
                             {
                                 if (columnCount != 0 && columnCount - 1 != groupingTermCount && columnCount != groupingTermCount)
                                 {
-                                    command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_IN_GROUP_BY_CLAUSE);
+                                    command.AddWarning(ctx.group_clause(), ParserMessageType.MISSING_COLUMN_IN_GROUP_BY_CLAUSE);
+                                }
+                                if (HasAggregateFunction(ctx.group_clause()))
+                                {
+                                    command.AddWarning(ctx.group_clause(), ParserMessageType.AGGREGATE_FUNCTION_IN_GROUP_BY_CLAUSE);
                                 }
                             }
                             if (HasOuterJoin(ctx) && HasSpecificAggregateFunction(ctx, "count"))
@@ -82,7 +101,7 @@ namespace NppDB.PostgreSQL
                     }
                 case PostgreSQLParser.RULE_having_clause: 
                     {
-                        if (context is PostgreSQLParser.Having_clauseContext ctx)
+                        if (context is PostgreSQLParser.Having_clauseContext ctx && HasHavingClause(ctx))
                         {
                             if (!HasAggregateFunction(ctx))
                             {
@@ -91,6 +110,29 @@ namespace NppDB.PostgreSQL
                             if (HasAndOrExprWithoutParens(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
+                            }
+                            if (!IsLogicalExpression(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.NOT_LOGICAL_OPERAND);
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_where_clause: 
+                    {
+                        if (context is PostgreSQLParser.Where_clauseContext ctx && HasWhereClause(ctx))
+                        {
+                            if (HasAggregateFunction(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_IN_WHERE_CLAUSE);
+                            }
+                            if (HasAndOrExprWithoutParens(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
+                            }
+                            if (!IsLogicalExpression(ctx))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.NOT_LOGICAL_OPERAND);
                             }
                         }
                         break;

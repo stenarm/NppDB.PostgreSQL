@@ -3495,7 +3495,7 @@ a_expr_qual
 
 
 a_expr_lessless
-   : a_expr_or ((LESS_LESS | GREATER_GREATER) a_expr_or)*
+   : a_expr_or (operands+=(LESS_LESS | GREATER_GREATER) a_expr_or)*
    ;
 /*17*/
 
@@ -3511,13 +3511,13 @@ a_expr_and
 /*21*/
 
 a_expr_between
-   : a_expr_in (NOT? BETWEEN SYMMETRIC? a_expr_in AND a_expr_in)?
+   : a_expr_in (NOT? operands+=BETWEEN SYMMETRIC? a_expr_in AND a_expr_in)?
    ;
 /*20*/
 
 
 a_expr_in
-   : a_expr_unary_not (NOT? IN_P in_expr)?
+   : a_expr_unary_not (NOT? operands+=IN_P in_expr)?
    ;
 /*15*/
 
@@ -3541,13 +3541,13 @@ a_expr_isnull
 
 
 a_expr_is_not
-   : a_expr_compare (IS NOT? (NULL_P | TRUE_P | FALSE_P | UNKNOWN | DISTINCT FROM a_expr | OF OPEN_PAREN type_list CLOSE_PAREN | DOCUMENT_P | unicode_normal_form? NORMALIZED))?
+   : a_expr_compare (IS NOT? (operands+=(NULL_P | TRUE_P | FALSE_P | UNKNOWN | DISTINCT) FROM a_expr | OF OPEN_PAREN type_list CLOSE_PAREN | DOCUMENT_P | unicode_normal_form? NORMALIZED))?
    ;
 /*11*/
 
 
 a_expr_compare
-   : a_expr_like ((LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) a_expr_like |subquery_Op sub_type (select_with_parens | OPEN_PAREN a_expr CLOSE_PAREN) /*21*/
+   : a_expr_like (operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) a_expr_like |subquery_Op sub_type (select_with_parens | OPEN_PAREN a_expr CLOSE_PAREN) /*21*/
 
    )?
    ;
@@ -3555,13 +3555,13 @@ a_expr_compare
 
 
 a_expr_like
-   : a_expr_qual_op (NOT? (LIKE | ILIKE | SIMILAR TO) a_expr_qual_op opt_escape)?
+   : a_expr_qual_op (NOT? (operands+=LIKE | operands+=ILIKE | operands+=SIMILAR TO) a_expr_qual_op opt_escape)?
    ;
 /* 8*/
 
 
 a_expr_qual_op
-   : a_expr_unary_qualop (qual_op a_expr_unary_qualop)*
+   : a_expr_unary_qualop (operands+=qual_op a_expr_unary_qualop)*
    ;
 /* 9*/
 
@@ -3573,25 +3573,25 @@ a_expr_unary_qualop
 
 
 a_expr_add
-   : a_expr_mul ((MINUS | PLUS) a_expr_mul)*
+   : a_expr_mul (operands+=(MINUS | PLUS) a_expr_mul)*
    ;
 /* 6*/
 
 
 a_expr_mul
-   : a_expr_caret ((STAR | SLASH | PERCENT) a_expr_caret)*
+   : a_expr_caret (operands+=(STAR | SLASH | PERCENT) a_expr_caret)*
    ;
 /* 5*/
 
 
 a_expr_caret
-   : a_expr_unary_sign (CARET a_expr)?
+   : a_expr_unary_sign (operands+=CARET a_expr)?
    ;
 /* 4*/
 
 
 a_expr_unary_sign
-   : (MINUS | PLUS)? a_expr_at_time_zone /* */
+   : operands+=(MINUS | PLUS)? a_expr_at_time_zone /* */
 
 
    ;
@@ -3599,7 +3599,7 @@ a_expr_unary_sign
 
 
 a_expr_at_time_zone
-   : a_expr_collate (AT TIME ZONE a_expr)?
+   : a_expr_collate (AT operands+=TIME ZONE a_expr)?
    ;
 /* 2*/
 
@@ -3618,17 +3618,17 @@ b_expr
    : c_expr
    | b_expr TYPECAST typename
    //right	unary plus, unary minus
-   | (PLUS | MINUS) b_expr
+   | operands+=(PLUS | MINUS) b_expr
    //^	left	exponentiation
-   | b_expr CARET b_expr
+   | b_expr operands+=CARET b_expr
    //* / %	left	multiplication, division, modulo
-   | b_expr (STAR | SLASH | PERCENT) b_expr
+   | b_expr operands+=(STAR | SLASH | PERCENT) b_expr
    //+ -	left	addition, subtraction
-   | b_expr (PLUS | MINUS) b_expr
+   | b_expr operands+=(PLUS | MINUS) b_expr
    //(any other operator)	left	all other native and user-defined operators
    | b_expr qual_op b_expr
    //< > = <= >= <>	 	comparison operators
-   | b_expr (LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) b_expr
+   | b_expr operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) b_expr
    | qual_op b_expr
    | b_expr qual_op
    //S ISNULL NOTNULL	 	IS TRUE, IS FALSE, IS NULL, IS DISTINCT FROM, etc

@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime.Tree;
+﻿using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
 using NppDB.Comm;
 using System;
 using System.Collections.Generic;
@@ -84,6 +85,50 @@ namespace NppDB.PostgreSQL
                 a_ExprOR = (A_expr_orContext)FindFirstTargetType(a_ExprOR, typeof(PostgreSQLParser.A_expr_orContext));
             }
             return false;
+        }
+
+        public static void FindUsedOperands(IParseTree context, IList<IToken> results)
+        {
+            for (var n = 0; n < context.ChildCount; ++n)
+            {
+                var child = context.GetChild(n);
+                if (DoesFieldExist(child, "_operands")) 
+                {
+                    object operandsValue = GetFieldValue(child, "_operands");
+                    if (operandsValue is IList<IToken> operandsList)
+                    {
+                        foreach (IToken token in operandsList)
+                        {
+                            results.Add(token);
+                        }
+                    }
+                }
+                FindUsedOperands(child, results);
+            }
+        }
+
+        public static object GetFieldValue(dynamic obj, string field)
+        {
+            System.Reflection.FieldInfo fieldInfo = ((Type)obj.GetType()).GetField(field);
+            return fieldInfo?.GetValue(obj);
+        }
+
+        public static bool DoesFieldExist(dynamic obj, string field)
+        {
+            System.Reflection.FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
+            return fieldInfos.Where(p => p.Name.Equals(field)).Any();
+        }
+
+        public static bool IsLogicalExpression(IParseTree context)
+        {
+            IList<IToken> usedOperands = new List<IToken>();
+            FindUsedOperands(context, usedOperands);
+
+            IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
+            FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
+            c_expr_Contexts = c_expr_Contexts.Where(ctx => ((C_exprContext)ctx).Start.Type != OPEN_PAREN || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN).ToList();
+            int betweenCount = usedOperands.Where(operand => operand.Type == BETWEEN).Count();
+            return c_expr_Contexts.Count - ((usedOperands.Count * 2) + betweenCount) == 0;
         }
 
         public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
@@ -182,9 +227,14 @@ namespace NppDB.PostgreSQL
             return ctx.distinct_clause() != null && !string.IsNullOrEmpty(ctx.distinct_clause().GetText());
         }
 
-        public static bool HasHavingClause(Simple_select_pramaryContext ctx)
+        public static bool HasHavingClause(Having_clauseContext ctx)
         {
-            return ctx.having_clause() != null && !string.IsNullOrEmpty(ctx.having_clause().GetText());
+            return ctx != null && !string.IsNullOrEmpty(ctx.GetText());
+        }
+
+        public static bool HasWhereClause(Where_clauseContext ctx)
+        {
+            return ctx != null && !string.IsNullOrEmpty(ctx.GetText());
         }
 
         public static int CountTablesInFromClause(Simple_select_pramaryContext ctx)
@@ -196,13 +246,13 @@ namespace NppDB.PostgreSQL
             return 0;
         }
 
-        public static int CountColumns(Simple_select_pramaryContext ctx)
+        public static Target_elContext[] GetColumns(Simple_select_pramaryContext ctx)
         {
             if (ctx?.opt_target_list()?.target_list()?.target_el() != null) 
             {
-                return ctx.opt_target_list().target_list().target_el().Length;
+                return ctx.opt_target_list().target_list().target_el();
             }
-            return 0;
+            return new Target_elContext[0];
         }
 
         public static int CountGroupingTerms(Simple_select_pramaryContext ctx)
@@ -221,6 +271,68 @@ namespace NppDB.PostgreSQL
                 return ctx.insert_rest().insert_column_list()._insert_columns.Count;
             }
             return 0;
+        }
+
+        public static bool HasDuplicateColumns(Target_elContext[] columns) 
+        {
+            List<String> columnNames = new List<String>();
+            foreach (Target_elContext column in columns) 
+            {
+                if (column.ChildCount <= 1) 
+                {
+                    columnNames.Add(column.GetText());
+                    continue;
+                }
+                columnNames.Add(column.GetChild(column.ChildCount - 1).GetText());
+            }
+            HashSet<String> columnNamesSet = new HashSet<String>(columnNames);
+            return columnNames.Count != columnNamesSet.Count;
+        }
+
+        public static int CountWheres(IParseTree context, int count)
+        {
+            if (string.Equals(context.GetText(), "where", StringComparison.OrdinalIgnoreCase))
+            {
+                return count + 1;
+            }
+            for (var n = 0; n < context.ChildCount; ++n)
+            {
+                var child = context.GetChild(n);
+                count = CountWheres(child, count);
+            }
+            return count;
+        }
+
+        public static int CountWhereClauses(IParseTree context)
+        {
+            IList<IParseTree> whereClauses = new List<IParseTree>();
+            FindAllTargetTypes(context, typeof(Where_clauseContext), whereClauses);
+            return whereClauses.Count;
+        }
+
+        public static bool ColumnHasAlias(Target_elContext column) 
+        {
+            return column != null && column.ChildCount > 1;
+        }
+
+        public static bool HasMissingColumnAlias(Target_elContext[] columns)
+        {
+            foreach (Target_elContext column in columns) 
+            {
+                if (!ColumnHasAlias(column)) 
+                {
+                    C_exprContext value = (C_exprContext) FindFirstTargetType(column, typeof(C_exprContext));
+                    if (value != null && value.ChildCount > 0)
+                    {
+                        if (value.GetChild(0) is AexprconstContext)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                
+            }
+            return false;
         }
 
         public static Simple_select_pramaryContext FindSelectPramaryContext(IParseTree context) 
