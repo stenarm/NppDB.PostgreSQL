@@ -55,7 +55,7 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_ALIAS_IN_SELECT_CLAUSE);
                             }
-                            if (HasWhereClause(ctx.where_clause()) && whereCount > whereClauseCount)
+                            if (HasText(ctx.where_clause()) && whereCount > whereClauseCount)
                             {
                                 command.AddWarning(ctx.where_clause(), ParserMessageType.MULTIPLE_WHERE_USED);
                             }
@@ -87,7 +87,7 @@ namespace NppDB.PostgreSQL
                             }
                             if (HasDistinctClause(ctx) && hasGroupByClause)
                             {
-                                command.AddWarning(ctx, ParserMessageType.DISTINCT_KEYWORD_WITH_GROUP_BY_CLAUSE);
+                                command.AddWarning(ctx.distinct_clause(), ParserMessageType.DISTINCT_KEYWORD_WITH_GROUP_BY_CLAUSE);
                             }
                             if (HasSelectStar(ctx))
                             {
@@ -101,8 +101,12 @@ namespace NppDB.PostgreSQL
                     }
                 case PostgreSQLParser.RULE_having_clause: 
                     {
-                        if (context is PostgreSQLParser.Having_clauseContext ctx && HasHavingClause(ctx))
+                        if (context is PostgreSQLParser.Having_clauseContext ctx && HasText(ctx))
                         {
+                            if (string.IsNullOrEmpty(ctx.a_expr().GetText()))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.MISSING_EXPRESSION_IN_HAVING_CLAUSE);
+                            }
                             if (!HasAggregateFunction(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
@@ -118,10 +122,25 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
+                case PostgreSQLParser.RULE_from_clause:
+                    {
+                        if (context is PostgreSQLParser.From_clauseContext ctx)
+                        {
+                            //if (HasJoinButNoJoinQual(ctx))
+                            //{
+                            //    command.AddWarning(ctx, ParserMessageType.MISSING_EXPRESSION_IN_JOIN_CLAUSE);
+                            //}
+                        }
+                        break;
+                    }
                 case PostgreSQLParser.RULE_where_clause: 
                     {
-                        if (context is PostgreSQLParser.Where_clauseContext ctx && HasWhereClause(ctx))
+                        if (context is PostgreSQLParser.Where_clauseContext ctx && HasText(ctx))
                         {
+                            if (string.IsNullOrEmpty(ctx.a_expr().GetText()))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.MISSING_EXPRESSION_IN_WHERE_CLAUSE);
+                            }
                             if (HasAggregateFunction(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_IN_WHERE_CLAUSE);
@@ -146,6 +165,22 @@ namespace NppDB.PostgreSQL
                                 if (IsSelectPramaryContextSelectStar(ctx.first_intersect?.simple_select_pramary()) || IsSelectPramaryContextSelectStar(ctx.second_intersect?.simple_select_pramary()))
                                 {
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_select_no_parens: 
+                    {
+                        if (context is PostgreSQLParser.Select_no_parensContext ctx && HasText(ctx))
+                        {
+                            List<IParseTree> results = new List<IParseTree>();
+                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Select_no_parensContext), results);
+                            foreach (Select_no_parensContext childSelect in results)
+                            {
+                                if (HasText(childSelect.opt_sort_clause()) && !(HasText(childSelect.opt_select_limit()) || HasText(childSelect.select_limit())))
+                                {
+                                    command.AddWarning(childSelect.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
                                 }
                             }
                         }
@@ -176,6 +211,17 @@ namespace NppDB.PostgreSQL
                             if (select_PramaryContext != null && HasSelectStar(select_PramaryContext))
                             {
                                 command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_INSERT_STATEMENT);
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_func_application: 
+                    {
+                        if (context is PostgreSQLParser.Func_applicationContext ctx)
+                        {
+                            if (ctx.func_name().GetText().ToLower() == "sum" && ctx.func_arg_list().GetText() == "1")
+                            {
+                                command.AddWarning(ctx, ParserMessageType.USE_COUNT_FUNCTION);
                             }
                         }
                         break;

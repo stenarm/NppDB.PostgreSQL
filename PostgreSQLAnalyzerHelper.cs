@@ -119,6 +119,35 @@ namespace NppDB.PostgreSQL
             return fieldInfos.Where(p => p.Name.Equals(field)).Any();
         }
 
+        public static bool HasParentOfAnyType(IParseTree context, IList<Type> breakIfReachTypes, IList<Type> targets) 
+        {
+            var parent = context.Parent;
+            if (parent == null) 
+            {
+                return false;
+            }
+            foreach (Type target in breakIfReachTypes)
+            {
+                if (target.IsAssignableFrom(parent.GetType()))
+                {
+                    return false;
+                }
+            }
+            foreach (Type target in targets)
+            {
+                if (target.IsAssignableFrom(parent.GetType()))
+                {
+                    return true;
+                }
+            }
+            var result = HasParentOfAnyType(parent, breakIfReachTypes, targets);
+            if (result)
+            {
+                return result;
+            }
+            return false;
+        }
+
         public static bool IsLogicalExpression(IParseTree context)
         {
             IList<IToken> usedOperands = new List<IToken>();
@@ -126,9 +155,16 @@ namespace NppDB.PostgreSQL
 
             IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
             FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
-            c_expr_Contexts = c_expr_Contexts.Where(ctx => ((C_exprContext)ctx).Start.Type != OPEN_PAREN || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN).ToList();
-            int betweenCount = usedOperands.Where(operand => operand.Type == BETWEEN).Count();
-            return c_expr_Contexts.Count - ((usedOperands.Count * 2) + betweenCount) == 0;
+            var breakTargets = new List<Type> { typeof(Where_clauseContext), typeof(From_clauseContext), typeof(Into_clauseContext), typeof(Having_clauseContext) };
+            var targets = new List<Type> { typeof(Opt_target_listContext), typeof(Target_listContext), typeof(Sortby_listContext) };
+            c_expr_Contexts = c_expr_Contexts.Where(ctx => 
+                (((C_exprContext)ctx).Start.Type != OPEN_PAREN
+                || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN)
+                && !HasParentOfAnyType(ctx, breakTargets, targets))
+            .ToList();
+            int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
+            int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
+            return (c_expr_Contexts.Count + specialOperandForCExprContextsCount) - ((usedOperands.Count * 2) + specialOperandForOperandsCount) == 0;
         }
 
         public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
@@ -150,7 +186,7 @@ namespace NppDB.PostgreSQL
             {
                 foreach (Table_refContext table in context.from_clause()?.from_list()?._tables)
                 {
-                    if (context.from_clause()?.from_list()?._tables[0].CROSS().Length > 0)
+                    if (table.CROSS().Length > 0)
                     {
                         return true;
                     }
@@ -165,6 +201,22 @@ namespace NppDB.PostgreSQL
             }
             return false;
         }
+
+        //public static bool HasJoinButNoJoinQual(PostgreSQLParser.From_clauseContext context)
+        //{
+        //    if (context?.from_list()?._tables != null && context?.from_list()?._tables.Count > 0)
+        //    {
+        //        foreach (Table_refContext table in context?.from_list()?._tables)
+        //        {
+                    
+        //            if (table.JOIN().Length > 0)
+        //            {
+        //                return true;
+        //            }
+        //        }
+        //    }
+        //    return false;
+        //}
 
         public static bool HasSelectStar(Simple_select_pramaryContext ctx)
         {
@@ -227,12 +279,7 @@ namespace NppDB.PostgreSQL
             return ctx.distinct_clause() != null && !string.IsNullOrEmpty(ctx.distinct_clause().GetText());
         }
 
-        public static bool HasHavingClause(Having_clauseContext ctx)
-        {
-            return ctx != null && !string.IsNullOrEmpty(ctx.GetText());
-        }
-
-        public static bool HasWhereClause(Where_clauseContext ctx)
+        public static bool HasText(IParseTree ctx)
         {
             return ctx != null && !string.IsNullOrEmpty(ctx.GetText());
         }
