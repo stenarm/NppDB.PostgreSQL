@@ -3547,7 +3547,7 @@ a_expr_is_not
 
 
 a_expr_compare
-   : a_expr_like (operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) a_expr_like |subquery_Op sub_type (select_with_parens | OPEN_PAREN a_expr CLOSE_PAREN) /*21*/
+   : lhs=a_expr_like (operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) rhs=a_expr_like |subquery_Op sub_type (select_with_parens | OPEN_PAREN a_expr CLOSE_PAREN) /*21*/
 
    )?
    ;
@@ -3555,7 +3555,7 @@ a_expr_compare
 
 
 a_expr_like
-   : a_expr_qual_op (NOT? (operands+=LIKE | operands+=ILIKE | operands+=SIMILAR TO) a_expr_qual_op opt_escape)?
+   : lhs=a_expr_qual_op (NOT? (operands+=LIKE | operands+=ILIKE | operands+=SIMILAR TO) rhs=a_expr_qual_op opt_escape)?
    ;
 /* 8*/
 
@@ -3579,7 +3579,7 @@ a_expr_add
 
 
 a_expr_mul
-   : a_expr_caret (operands+=(STAR | SLASH | PERCENT) a_expr_caret)*
+   : lhs=a_expr_caret (operands+=(STAR | SLASH | PERCENT) rhs=a_expr_caret)*
    ;
 /* 5*/
 

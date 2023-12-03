@@ -152,6 +152,8 @@ namespace NppDB.PostgreSQL
         {
             IList<IToken> usedOperands = new List<IToken>();
             FindUsedOperands(context, usedOperands);
+            int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
+            int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
 
             IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
             FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
@@ -162,8 +164,6 @@ namespace NppDB.PostgreSQL
                 || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN)
                 && !HasParentOfAnyType(ctx, breakTargets, targets))
             .ToList();
-            int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
-            int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
             return (c_expr_Contexts.Count + specialOperandForCExprContextsCount) - ((usedOperands.Count * 2) + specialOperandForOperandsCount) == 0;
         }
 
@@ -368,10 +368,10 @@ namespace NppDB.PostgreSQL
             {
                 if (!ColumnHasAlias(column)) 
                 {
-                    C_exprContext value = (C_exprContext) FindFirstTargetType(column, typeof(C_exprContext));
+                    C_expr_exprContext value = (C_expr_exprContext) FindFirstTargetType(column, typeof(C_expr_exprContext));
                     if (value != null && value.ChildCount > 0)
                     {
-                        if (value.GetChild(0) is AexprconstContext)
+                        if (value.GetChild(0) is AexprconstContext || value.GetChild(0) is Func_exprContext)
                         {
                             return true;
                         }
@@ -402,5 +402,26 @@ namespace NppDB.PostgreSQL
             }
             return null;
         }
+
+        public static bool HasSubqueryColumnMismatch(A_expr_inContext a_expr_inContext, Simple_select_pramaryContext subQuery) 
+        {
+            Target_elContext[] subQueryColumns = GetColumns(subQuery);
+            int subQueryColumnCount = subQueryColumns.Count();
+            if (a_expr_inContext != null && a_expr_inContext.ChildCount > 1)
+            {
+                IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
+                FindAllTargetTypes(a_expr_inContext.a_expr_unary_not(), typeof(C_exprContext), c_expr_Contexts);
+                c_expr_Contexts = c_expr_Contexts.Where(c_expr_ctx =>
+                    ((C_exprContext)c_expr_ctx).Start.Type != OPEN_PAREN
+                    || ((C_exprContext)c_expr_ctx).Stop.Type != CLOSE_PAREN)
+                .ToList();
+                if (c_expr_Contexts.Count != subQueryColumnCount)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
 }

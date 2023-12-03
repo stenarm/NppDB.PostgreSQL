@@ -96,6 +96,22 @@ namespace NppDB.PostgreSQL
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_WITH_MULTIPLE_JOINS);
                                 }
                             }
+
+                            List<IParseTree> subQueries = new List<IParseTree>();
+                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Simple_select_pramaryContext), subQueries);
+                            A_expr_inContext a_expr_inContext = (A_expr_inContext)FindFirstTargetType(ctx, typeof(A_expr_inContext));
+                            foreach (Simple_select_pramaryContext subQuery in subQueries)
+                            {
+                                if (HasSubqueryColumnMismatch(a_expr_inContext, subQuery))
+                                {
+                                    command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                }
+                                if (HasSelectStar(subQuery))
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_SUB_QUERY);
+                                }
+
+                            }
                         }
                         break;
                     }
@@ -162,7 +178,8 @@ namespace NppDB.PostgreSQL
                         {
                             if (ctx.union != null && ctx.first_intersect != null && ctx.second_intersect != null) 
                             {
-                                if (IsSelectPramaryContextSelectStar(ctx.first_intersect?.simple_select_pramary()) || IsSelectPramaryContextSelectStar(ctx.second_intersect?.simple_select_pramary()))
+                                if (IsSelectPramaryContextSelectStar(ctx.first_intersect?.simple_select_pramary()) 
+                                    || IsSelectPramaryContextSelectStar(ctx.second_intersect?.simple_select_pramary()))
                                 {
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
                                 }
@@ -174,13 +191,13 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.Select_no_parensContext ctx && HasText(ctx))
                         {
-                            List<IParseTree> results = new List<IParseTree>();
-                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Select_no_parensContext), results);
-                            foreach (Select_no_parensContext childSelect in results)
+                            List<IParseTree> subQueries = new List<IParseTree>();
+                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Select_no_parensContext), subQueries);
+                            foreach (Select_no_parensContext subQuery in subQueries)
                             {
-                                if (HasText(childSelect.opt_sort_clause()) && !(HasText(childSelect.opt_select_limit()) || HasText(childSelect.select_limit())))
+                                if (HasText(subQuery.opt_sort_clause()) && !(HasText(subQuery.opt_select_limit()) || HasText(subQuery.select_limit())))
                                 {
-                                    command.AddWarning(childSelect.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
+                                    command.AddWarning(subQuery.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
                                 }
                             }
                         }
@@ -223,6 +240,112 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.USE_COUNT_FUNCTION);
                             }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_a_expr_like: 
+                    {
+                        if (context is PostgreSQLParser.A_expr_likeContext ctx && HasText(ctx))
+                        {
+                            if (HasText(ctx.rhs))
+                            {
+                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.rhs, typeof(C_expr_exprContext));
+                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
+                                {
+                                    if (!ctx.rhs.GetText().Contains("%") && !ctx.rhs.GetText().Contains("_")) 
+                                    {
+                                        if ((ctx._SIMILAR != null
+                                            && !ctx.rhs.GetText().Contains("|")
+                                            && !ctx.rhs.GetText().Contains("*")
+                                            && !ctx.rhs.GetText().Contains("+")
+                                            && !ctx.rhs.GetText().Contains("?")
+                                            && !ctx.rhs.GetText().Contains("{")
+                                            && !ctx.rhs.GetText().Contains("}")
+                                            && !ctx.rhs.GetText().Contains("(")
+                                            && !ctx.rhs.GetText().Contains(")")
+                                            && !ctx.rhs.GetText().Contains("[")
+                                            && !ctx.rhs.GetText().Contains("]")
+                                            && !ctx.rhs.GetText().Contains("*")) || ctx._SIMILAR == null)
+                                        {
+                                            command.AddWarning(ctx, ParserMessageType.MISSING_WILDCARDS_IN_LIKE_EXPRESSION);
+                                        }
+                                    }
+                                }
+                                if (value.ChildCount > 0 && value.GetChild(0) is ColumnrefContext)
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.COLUMN_LIKE_COLUMN);
+                                }
+                                
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_a_expr_compare: 
+                    {
+                        if (context is PostgreSQLParser.A_expr_compareContext ctx && HasText(ctx))
+                        {
+                            if (HasText(ctx.rhs) && (ctx.rhs.GetText().Contains("%") || ctx.rhs.GetText().Contains("_")))
+                            {
+                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.rhs, typeof(C_expr_exprContext));
+                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext) {
+                                    command.AddWarning(ctx.rhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
+                                }
+                            }
+                            if (HasText(ctx.lhs) && (ctx.lhs.GetText().Contains("%") || ctx.lhs.GetText().Contains("_")))
+                            {
+                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.lhs, typeof(C_expr_exprContext));
+                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext) {
+                                    command.AddWarning(ctx.lhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
+                                }
+                            }
+                            if ((HasText(ctx.rhs) && ctx.rhs.GetText().ToLower().Equals("null")) ||
+                                    (HasText(ctx.lhs) && ctx.lhs.GetText().ToLower().Equals("null")))
+                            {
+                                if (ctx.LT() != null || ctx.GT() != null || ctx.LESS_EQUALS() != null || ctx.GREATER_EQUALS() != null)
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.COMPARING_WITH_NULL);
+                                }
+                                if (ctx.EQUAL() != null)
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.EQUALITY_WITH_NULL);
+                                }
+                                if (ctx.NOT_EQUALS() != null)
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.NOT_EQUALITY_WITH_NULL);
+                                }
+                            }
+
+                            if (HasText(ctx.subquery_Op())) 
+                            {
+                                MathopContext mathOperand = (MathopContext)FindFirstTargetType(ctx.subquery_Op(), typeof(MathopContext));
+                                Sub_typeContext subType = ctx.sub_type();
+                                if (HasText(subType) && HasText(mathOperand))
+                                {
+                                    if (mathOperand.EQUAL() != null && subType.ALL() != null)
+                                    {
+                                        command.AddWarning(ctx, ParserMessageType.EQUALS_ALL);
+                                    }
+                                    if (mathOperand.NOT_EQUALS() != null && (subType.ANY() != null || subType.SOME() != null))
+                                    {
+                                        command.AddWarning(ctx, ParserMessageType.NOT_EQUALS_ANY);
+                                    }
+                                }
+                            }
+                            
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_a_expr_mul: 
+                    {
+                        if (context is PostgreSQLParser.A_expr_mulContext ctx && HasText(ctx))
+                        {
+                            if (HasText(ctx.lhs) && HasText(ctx.rhs) && ctx.SLASH() != null &&
+                                ctx.lhs.GetText().ToLower().Contains("sum") &&
+                                ctx.rhs.GetText().ToLower().Contains("count"))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.USE_AVG_FUNCTION);
+                            }
+                            
                         }
                         break;
                     }
