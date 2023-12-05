@@ -120,13 +120,14 @@ namespace NppDB.PostgreSQL
 
         private List<string> CollectPrimaryKeys(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
-            var query = "SELECT distinct conname as constraint_name " +
-                ", pg_get_constraintdef(oid) as constraint_definition " +
-                "FROM pg_catalog.pg_constraint " +
-                "JOIN pg_catalog.pg_attribute a ON a.attrelid = conrelid " +
-                "WHERE contype IN('p') " +
-                "AND connamespace = '{0}'::regnamespace " +
-                "AND conrelid = '{1}'::regclass";
+            var query = "SELECT distinct c.conname as constraint_name " +
+                ", pg_get_constraintdef(c.oid) as constraint_definition " +
+                "FROM pg_catalog.pg_constraint c " +
+                "JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid " +
+                "JOIN pg_catalog.pg_class AS cls ON cls.oid = a.attrelid " +
+                "WHERE c.contype IN('p') " +
+                "AND c.connamespace = '{0}'::regnamespace " +
+                "AND cls.relname = '{1}'";
 
             var names = new List<string>();
             using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
@@ -151,16 +152,16 @@ namespace NppDB.PostgreSQL
 
         private List<string> CollectForeignKeys(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
         {
-            var query = "SELECT distinct conname as constraint_name " +
-                ", pg_get_constraintdef(oid) as constraint_definition " +
-                "FROM pg_catalog.pg_constraint " +
-                "JOIN pg_catalog.pg_attribute a ON a.attrelid = conrelid " +
-                "WHERE contype IN('f') " +
-                "AND connamespace = '{0}'::regnamespace " +
-                "AND conrelid = '{1}'::regclass"; ;
+            var query = "SELECT distinct c.conname as constraint_name " +
+                ", pg_get_constraintdef(c.oid) as constraint_definition " +
+                "FROM pg_catalog.pg_constraint c " +
+                "JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid " +
+                "JOIN pg_catalog.pg_class AS cls ON cls.oid = a.attrelid " +
+                "WHERE c.contype IN('f') " +
+                "AND c.connamespace = '{0}'::regnamespace " +
+                "AND cls.relname = '{1}'"; ;
 
-            var names = new List<string>();
-
+            var names = new List<string>();;
             using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
@@ -232,7 +233,7 @@ namespace NppDB.PostgreSQL
             {
                 host.Execute(NppDBCommandType.NewFile, null);
                 var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"SELECT * FROM {schemaName}.{Text};";
+                var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\";";
                 host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
                 host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
                 host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
@@ -241,13 +242,13 @@ namespace NppDB.PostgreSQL
             {
                 menuList.Items.Add(new ToolStripButton($"REFRESH MATERIALIZED VIEW", null, (s, e) =>
                 {
-                    var query = $"REFRESH MATERIALIZED VIEW {Text};";
+                    var query = $"REFRESH MATERIALIZED VIEW \"{Text}\";";
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
                     host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
                 }));
                 menuList.Items.Add(new ToolStripButton($"DROP MATERIALIZED VIEW", null, (s, e) =>
                 {
-                    var query = $"DROP MATERIALIZED VIEW {Text};";
+                    var query = $"DROP MATERIALIZED VIEW \"{Text}\";";
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
                     host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
                 }));
@@ -258,7 +259,7 @@ namespace NppDB.PostgreSQL
                 {
                     menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
                     {
-                        var query = $"DROP {TypeName} {GetSchemaName()}.{Text};";
+                        var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
                         var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
                         host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
                     }));
