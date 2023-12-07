@@ -20,6 +20,7 @@ namespace NppDB.PostgreSQL
             Nodes.Add(new PostgreSQLForeignTableGroup());
             Nodes.Add(new PostgreSQLViewGroup());
             Nodes.Add(new PostgreSQLMaterializedViewGroup());
+            Nodes.Add(new PostgreSQLFunctionGroup());
             //Nodes.Add(new MSAccessTableGroup());
             //Nodes.Add(new MSAccessViewGroup());
             // add other categories as stored procedures

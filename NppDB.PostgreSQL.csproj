@@ -149,6 +149,7 @@
     <Compile Include="PostgreSQLAnalyzerHelper.cs" />
     <Compile Include="PostgreSQLColumnInfo.cs" />
     <Compile Include="PostgreSQLConnect.cs" />
+    <Compile Include="PostgreSQLFunctionGroup.cs" />
     <Compile Include="PostgreSQLSchema.cs" />
     <Compile Include="PostgreSQLExecutor.cs" />
     <Compile Include="PostgreSQLLexer.cs" />

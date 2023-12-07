@@ -37,6 +37,11 @@ namespace NppDB.PostgreSQL
                         var columnCount = CollectColumns(cnn, ref columns, new List<string>(), new List<string>(), new List<string>());
                         if (columnCount == 0) return;
                     }
+                    else if (TypeName == "FUNCTION")
+                    {
+                        var columnCount = CollectFunctionColumns(cnn, ref columns);
+                        if (columnCount == 0) return;
+                    }
                     else 
                     {
                         var primaryKeyColumnNames = CollectPrimaryKeys(cnn, ref columns);
@@ -62,6 +67,36 @@ namespace NppDB.PostgreSQL
                     TreeView.Cursor = null;
                 }
             }
+        }
+
+        private int CollectFunctionColumns(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns)
+        {
+            var count = 0;
+            String query = "select pg_get_function_arguments(p.oid) as function_arguments " +
+                "from pg_proc p " +
+                "left join pg_namespace n on p.pronamespace = n.oid " +
+                "where n.nspname = '{0}' and p.proname = '{1}'";
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
+            {
+                using (NpgsqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var functionArguments = reader["function_arguments"].ToString();
+
+                        string[] functionArgumentsArray = functionArguments.Split(',');
+                        foreach (string functionArgument in functionArgumentsArray)
+                        {
+                            string[] argumentNameAndType = functionArgument.Trim().Split(' ');
+                            if (argumentNameAndType.Length > 1) 
+                            {
+                                columns.Insert(count++, new PostgreSQLColumnInfo(argumentNameAndType[0], argumentNameAndType[1].ToUpper(), 0, 0));
+                            }
+                        }
+                    }
+                }
+            }
+            return count;
         }
 
         private int CollectColumns(NpgsqlConnection connection, ref List<PostgreSQLColumnInfo> columns,
@@ -229,15 +264,18 @@ namespace NppDB.PostgreSQL
 
             var host = connect.CommandHost;
             string schemaName = GetSchemaName();
-            menuList.Items.Add(new ToolStripButton($"SELECT * FROM {Text}", null, (s, e) =>
+            if (TypeName != "FUNCTION") 
             {
-                host.Execute(NppDBCommandType.NewFile, null);
-                var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\";";
-                host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
-                host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
-                host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
-            }));
+                menuList.Items.Add(new ToolStripButton($"SELECT * FROM {Text}", null, (s, e) =>
+                {
+                    host.Execute(NppDBCommandType.NewFile, null);
+                    var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                    var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\";";
+                    host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
+                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
+                    host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                }));
+            }
             if (TypeName == "MATERIALIZED_VIEW")
             {
                 menuList.Items.Add(new ToolStripButton($"REFRESH MATERIALIZED VIEW", null, (s, e) =>
