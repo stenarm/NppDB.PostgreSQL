@@ -411,7 +411,13 @@ namespace NppDB.PostgreSQL
                         {
                             commands.Last().Text = commands.Last().Text + child.GetText() + tokenSeparator;
                         }
-                        else if (context.RuleIndex != PostgreSQLParser.RULE_function_or_procedure || token.Type != PostgreSQLParser.OPEN_PAREN && token.Type != PostgreSQLParser.CLOSE_PAREN && token.Type != PostgreSQLParser.COMMA)
+                        else if (context.RuleIndex != PostgreSQLParser.RULE_function_or_procedure ||
+                            token.Type != PostgreSQLParser.OPEN_PAREN &&
+                            child.GetText() != "(" &&
+                            token.Type != PostgreSQLParser.CLOSE_PAREN &&
+                            child.GetText() != ")" &&
+                            token.Type != PostgreSQLParser.COMMA &&
+                            child.GetText() != ",")
                         {
                             functionParams.Last().Append(child.GetText() + tokenSeparator);
                         }
@@ -434,49 +440,7 @@ namespace NppDB.PostgreSQL
 
                     if (ctx?.RuleIndex == PostgreSQLParser.RULE_empty_grouping_set) continue;
 
-                    if (ctx?.RuleIndex == PostgreSQLParser.RULE_indirection_el)
-                    {
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, "", commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
-                        if (functionParams is null)
-                            commands.Last().Text += tokenSeparator;
-                        else
-                            functionParams.Last().Append(tokenSeparator);
-                    }
-                    else if (ctx?.RuleIndex == PostgreSQLParser.RULE_ruleactionlist)
-                    {
-                        var p = new List<StringBuilder> { new StringBuilder() };
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, p, transactionStatementsEncountered);
-                        var functionName = p[0].ToString().ToLower();
-                        p.RemoveAt(0);
-                        var functionCallString = "";
-                        if (functionName == "nz" && (p.Count == 2 || p.Count == 3))
-                        {
-                            if (p[1].Length == 0) p[1].Append("''");
-                            functionCallString = $"IIf(IsNull({p[0]}), {p[1]}, {p[0]})";
-                        }
-                        else
-                        {
-                            functionCallString = $"{functionName}({string.Join(", ", p).TrimEnd(',', ' ')})";
-                        }
-
-                        if (functionParams is null)
-                        {
-                            commands.Last().Text = commands.Last().Text + functionCallString + tokenSeparator;
-                        }
-                        else
-                        {
-                            functionParams.Last().Append(functionCallString + tokenSeparator);
-                        }
-                    }
-                    else
-                    {
-                        enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
-                        if (!(functionParams is null) && (ctx?.RuleIndex == PostgreSQLParser.RULE_colid || ctx?.RuleIndex == PostgreSQLParser.RULE_stmtblock))
-                        {
-                            functionParams.Last().Length -= tokenSeparator.Length;
-                            functionParams.Add(new StringBuilder());
-                        }
-                    }
+                    enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
                 }
             }
             return enclosingCommandIndex;

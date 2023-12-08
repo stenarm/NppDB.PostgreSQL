@@ -8,6 +8,12 @@ using System.IO;
 using System.Data;
 using Npgsql;
 using System.Windows.Forms;
+using NpgsqlTypes;
+using Npgsql.PostgresTypes;
+using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
+using static System.Net.Mime.MediaTypeNames;
+using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace NppDB.PostgreSQL
 {
@@ -64,8 +70,71 @@ namespace NppDB.PostgreSQL
             }
         }
 
+        private string GetMonetaryLocale()
+        {
+            String query = "SHOW LC_MONETARY;";
+            try
+            {
+                using (NpgsqlCommand command = new NpgsqlCommand(query, _connection))
+                {
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string lc_monetary = reader["lc_monetary"].ToString();
+                            if (lc_monetary != null) 
+                            {
+                                Match lc_monetaryTargetMatch = Regex.Match(lc_monetary, @".._..", RegexOptions.IgnoreCase);
+                                if (lc_monetaryTargetMatch.Success && lc_monetaryTargetMatch.Groups.Count > 0)
+                                {
+                                    return lc_monetaryTargetMatch.Groups[0].ToString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return $"{e.Message}";
+            }
+            return null;
+        }
+        private string GetTimeZone()
+        {
+            String query = "show timezone;";
+            try
+            {
+                using (NpgsqlCommand command = new NpgsqlCommand(query, _connection))
+                {
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            return reader["timezone"].ToString();
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+            return null;
+        }
+
+        public bool IsAborted(string message) 
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                return message.IndexOf("current transaction is aborted", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+            return false;
+        }
+
         public void Execute(IList<string> sqlQueries, Action<IList<CommandResult>> callback)
         {
+
             _execTh = new Thread(new ThreadStart(
                 delegate
                 {
@@ -73,6 +142,9 @@ namespace NppDB.PostgreSQL
                     {
                         _connection.Open();
                     }
+                    string monetaryLocaleOrAbortedMessage = GetMonetaryLocale();
+                    string timezone = GetTimeZone();
+                    bool isAborted = IsAborted(monetaryLocaleOrAbortedMessage);
                     var results = new List<CommandResult>();
                     string lastSql = null;
                     try
@@ -91,7 +163,10 @@ namespace NppDB.PostgreSQL
                                 {
                                     Type type = rd.GetFieldType(i);
                                     // Handle DBNull type
-                                    if (type == typeof(System.DBNull))
+                                    if (type == typeof(System.DBNull) ||
+                                        (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(i) == "money") 
+                                        || type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(DateTimeOffset)
+                                        )
                                     {
                                         type = typeof(string);
                                     }
@@ -111,21 +186,66 @@ namespace NppDB.PostgreSQL
                                 {
                                     DataRow row = dt.NewRow();
 
-                                    for (int i = 0; i < rd.FieldCount; i++)
+                                    for (int j = 0; j < rd.FieldCount; j++)
                                     {
                                         // Handle DBNull value
-                                        if (rd.IsDBNull(i))
+                                        if (rd.IsDBNull(j))
                                         {
-                                            row[i] = DBNull.Value;
+                                            row[j] = DBNull.Value;
                                         }
                                         else
                                         {
-                                            row[i] = rd[i];
+                                            object rdi = rd[j];
+                                            Console.WriteLine(rd.GetDataTypeName(j));
+                                            Type type = rd.GetFieldType(j);
+                                            if (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(j) == "money")
+                                            {
+
+                                                rdi = string.Format(new System.Globalization.CultureInfo(monetaryLocaleOrAbortedMessage, false), "{0:c0}", rdi);
+                                            }
+                                            if (type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(DateTimeOffset))
+                                            {
+                                                if (rd.GetDataTypeName(j) != null) 
+                                                {
+                                                    if (rd.GetDataTypeName(j).IndexOf("with time zone", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                    {
+                                                        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(timezone);
+                                                        if (rd.GetDataTypeName(j).StartsWith("time"))
+                                                        {
+                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF") + timeZone.BaseUtcOffset; //"2023-12-08 14:43:37.626329+00"
+                                                        }
+                                                        else
+                                                        {
+                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF") + timeZone.BaseUtcOffset; //"2023-12-08 14:43:37.626329+00"
+                                                        }
+                                                    }
+                                                    else if (rd.GetDataTypeName(j).IndexOf("without time zone", StringComparison.OrdinalIgnoreCase) >= 0)
+                                                    {
+                                                        if (rd.GetDataTypeName(j).StartsWith("time"))
+                                                        {
+                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF"); //"2023-12-08 14:43:37.626329+00"
+                                                        }
+                                                        else
+                                                        {
+                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF"); //"2023-12-08 14:43:37.626329+00"
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd");
+                                                    }
+                                                } else 
+                                                {
+                                                    rdi = "";
+                                                }
+                                            }
+                                            row[j] = rdi;
                                         }
                                     }
                                     dt.Rows.Add(row);
                                 }
-                                results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected });
+                                string commandMessage = (sql.Trim().ToLower() == "commit" && isAborted) ? "ROLLBACK" : null;
+                                results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected, CommandMessage = commandMessage });
                             }
                         }
                     }
