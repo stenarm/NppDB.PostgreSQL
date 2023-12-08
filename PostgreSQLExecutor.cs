@@ -14,6 +14,7 @@ using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
 using static System.Net.Mime.MediaTypeNames;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using TimeZoneConverter;
 
 namespace NppDB.PostgreSQL
 {
@@ -116,7 +117,7 @@ namespace NppDB.PostgreSQL
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
@@ -143,7 +144,7 @@ namespace NppDB.PostgreSQL
                         _connection.Open();
                     }
                     string monetaryLocaleOrAbortedMessage = GetMonetaryLocale();
-                    string timezone = GetTimeZone();
+                    string timezoneName = GetTimeZone();
                     bool isAborted = IsAborted(monetaryLocaleOrAbortedMessage);
                     var results = new List<CommandResult>();
                     string lastSql = null;
@@ -196,7 +197,6 @@ namespace NppDB.PostgreSQL
                                         else
                                         {
                                             object rdi = rd[j];
-                                            Console.WriteLine(rd.GetDataTypeName(j));
                                             Type type = rd.GetFieldType(j);
                                             if (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(j) == "money")
                                             {
@@ -207,27 +207,36 @@ namespace NppDB.PostgreSQL
                                             {
                                                 if (rd.GetDataTypeName(j) != null) 
                                                 {
+                                                   
                                                     if (rd.GetDataTypeName(j).IndexOf("with time zone", StringComparison.OrdinalIgnoreCase) >= 0)
                                                     {
-                                                        TimeZoneInfo timeZone = TimeZoneInfo.FindSystemTimeZoneById(timezone);
-                                                        if (rd.GetDataTypeName(j).StartsWith("time"))
+                                                        string timeZoneFinalString = "+00";
+                                                        if (!string.IsNullOrEmpty(timezoneName)) 
                                                         {
-                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF") + timeZone.BaseUtcOffset; //"2023-12-08 14:43:37.626329+00"
+                                                            TimeZoneInfo timeZoneInfo = TimeZoneConverter.TZConvert.GetTimeZoneInfo(timezoneName);
+                                                            int hours = timeZoneInfo.BaseUtcOffset.Hours;
+                                                            string timezoneStringStart = (hours < 0 ? "-" : "+");
+                                                            string timezoneStringEnd = (Math.Abs(hours) >= 10 ? $"{Math.Abs(hours)}" : $"0{Math.Abs(hours)}");
+                                                            timeZoneFinalString = timezoneStringStart + timezoneStringEnd;
+                                                        }
+                                                        if (rd.GetDataTypeName(j).StartsWith("timestamp"))
+                                                        {
+                                                            rdi = rd.GetFieldValue<DateTimeOffset>(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF") + timeZoneFinalString;
                                                         }
                                                         else
                                                         {
-                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF") + timeZone.BaseUtcOffset; //"2023-12-08 14:43:37.626329+00"
+                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF") + timeZoneFinalString;
                                                         }
                                                     }
                                                     else if (rd.GetDataTypeName(j).IndexOf("without time zone", StringComparison.OrdinalIgnoreCase) >= 0)
                                                     {
-                                                        if (rd.GetDataTypeName(j).StartsWith("time"))
+                                                        if (rd.GetDataTypeName(j).StartsWith("timestamp"))
                                                         {
-                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF"); //"2023-12-08 14:43:37.626329+00"
+                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF");
                                                         }
                                                         else
                                                         {
-                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF"); //"2023-12-08 14:43:37.626329+00"
+                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF");
                                                         }
                                                     }
                                                     else
