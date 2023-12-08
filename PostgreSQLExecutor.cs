@@ -221,11 +221,11 @@ namespace NppDB.PostgreSQL
                                                         }
                                                         if (rd.GetDataTypeName(j).StartsWith("timestamp"))
                                                         {
-                                                            rdi = rd.GetFieldValue<DateTimeOffset>(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF") + timeZoneFinalString;
+                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF") + timeZoneFinalString;
                                                         }
                                                         else
                                                         {
-                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF") + timeZoneFinalString;
+                                                            rdi = rd.GetFieldValue<DateTimeOffset>(j).ToString("HH:mm:ss.FFFFFF") + timeZoneFinalString;
                                                         }
                                                     }
                                                     else if (rd.GetDataTypeName(j).IndexOf("without time zone", StringComparison.OrdinalIgnoreCase) >= 0)
