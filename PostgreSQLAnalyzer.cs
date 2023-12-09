@@ -131,7 +131,7 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
                             }
-                            if (!IsLogicalExpression(ctx))
+                            if (!IsLogical(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.NOT_LOGICAL_OPERAND);
                             }
@@ -165,7 +165,7 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
                             }
-                            if (!IsLogicalExpression(ctx))
+                            if (!IsLogical(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.NOT_LOGICAL_OPERAND);
                             }
@@ -284,11 +284,12 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.A_expr_compareContext ctx && HasText(ctx))
                         {
-                            if (HasText(ctx.rhs) && (ctx.rhs.GetText().Contains("%") || ctx.rhs.GetText().Contains("_")))
+                            ParserRuleContext rhs = FindCompareRhs(ctx);
+                            if (HasText(rhs) && (rhs.GetText().Contains("%") || rhs.GetText().Contains("_")))
                             {
-                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.rhs, typeof(C_expr_exprContext));
+                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(rhs, typeof(C_expr_exprContext));
                                 if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext) {
-                                    command.AddWarning(ctx.rhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
+                                    command.AddWarning(rhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
                                 }
                             }
                             if (HasText(ctx.lhs) && (ctx.lhs.GetText().Contains("%") || ctx.lhs.GetText().Contains("_")))
@@ -298,7 +299,7 @@ namespace NppDB.PostgreSQL
                                     command.AddWarning(ctx.lhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
                                 }
                             }
-                            if ((HasText(ctx.rhs) && ctx.rhs.GetText().ToLower().Equals("null")) ||
+                            if ((HasText(rhs) && rhs.GetText().ToLower().Equals("null")) ||
                                     (HasText(ctx.lhs) && ctx.lhs.GetText().ToLower().Equals("null")))
                             {
                                 if (ctx.LT() != null || ctx.GT() != null || ctx.LESS_EQUALS() != null || ctx.GREATER_EQUALS() != null)
@@ -339,9 +340,9 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.A_expr_mulContext ctx && HasText(ctx))
                         {
-                            if (HasText(ctx.lhs) && HasText(ctx.rhs) && ctx.SLASH() != null &&
+                            if (HasText(ctx.lhs) && ctx._rhs != null && ctx._rhs.Count > 0 && HasText(ctx._rhs[0]) && ctx.SLASH() != null &&
                                 ctx.lhs.GetText().ToLower().Contains("sum") &&
-                                ctx.rhs.GetText().ToLower().Contains("count"))
+                                ctx._rhs[0].GetText().ToLower().Contains("count"))
                             {
                                 command.AddWarning(ctx, ParserMessageType.USE_AVG_FUNCTION);
                             }
@@ -350,6 +351,23 @@ namespace NppDB.PostgreSQL
                         break;
                     }
             }
+        }
+
+        private static ParserRuleContext FindCompareRhs(A_expr_compareContext ctx)
+        {
+            if (HasText(ctx.rhs1)) 
+            {
+                return ctx.rhs1;
+            }
+            if (HasText(ctx.rhs2)) 
+            {
+                return ctx.rhs2;
+            }
+            if (HasText(ctx.rhs3)) 
+            {
+                return ctx.rhs3;
+            }
+            return null;
         }
 
         private static int _CollectCommands(

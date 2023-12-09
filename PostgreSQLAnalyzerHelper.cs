@@ -2,6 +2,7 @@
 using Antlr4.Runtime.Tree;
 using NppDB.Comm;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Remoting.Contexts;
@@ -106,7 +107,82 @@ namespace NppDB.PostgreSQL
                 FindUsedOperands(child, results);
             }
         }
+        public static bool IsLogical(IParseTree context)
+        {
+            for (var n = 0; n < context.ChildCount; ++n)
+            {
+                var child = context.GetChild(n);
+                IList<dynamic> lhs = FindSimilarNotNullExistingFields(child, "lhs");
+                IList<dynamic> rhs = FindSimilarNotNullExistingFields(child, "rhs");
+                IList<IParseTree> rhsCleaned = new List<IParseTree>();
+                foreach (dynamic expr in rhs) 
+                {
+                    if ((expr is IList && expr.GetType().IsGenericType && expr.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>))))
+                    {
+                        foreach (var item in expr)
+                        {
+                            if (item is Antlr4.Runtime.Tree.IParseTree tree && HasText(tree))
+                            {
+                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(tree, typeof(C_expr_exprContext));
+                                if (value != null && value.ChildCount > 0 && !(value.GetChild(0) is AexprconstContext) && tree.GetText() != value.GetChild(0).GetText())
+                                {
+                                    rhsCleaned.Add(tree);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (expr is Antlr4.Runtime.Tree.IParseTree tree)
+                        {
+                            rhsCleaned.Add(tree);
+                        }
+                    }
+                }
+                IList<IToken> operands = FindOperands(child);
+                if (rhsCleaned.Count != operands.Count)
+                {
+                    return false;
+                }
+                bool result = IsLogical(child);
+                if (!result)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
 
+        private static IList<IToken> FindOperands(IParseTree child)
+        {
+            IList<IToken> operands = new List<IToken>();
+            if (DoesFieldExist(child, "_operands"))
+            {
+                object operandsValue = GetFieldValue(child, "_operands");
+                if (operandsValue is IList<IToken> operandsList)
+                {
+                    foreach (IToken token in operandsList)
+                    {
+                        operands.Add(token);
+                    }
+                }
+            }
+            if (DoesFieldExist(child, "_operands1"))
+            {
+                object operandsValue = GetFieldValue(child, "_operands1");
+                if (operandsValue is IList<Sub_typeContext> operandsList)
+                {
+                    foreach (Sub_typeContext sub in operandsList)
+                    {
+                        if (sub.ChildCount > 0 && sub.GetChild(0)?.Payload is IToken token)
+                        {
+                            operands.Add(token);
+                        }
+                    }
+                }
+            }
+            return operands;
+        }
         public static object GetFieldValue(dynamic obj, string field)
         {
             System.Reflection.FieldInfo fieldInfo = ((Type)obj.GetType()).GetField(field);
@@ -117,6 +193,12 @@ namespace NppDB.PostgreSQL
         {
             System.Reflection.FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
             return fieldInfos.Where(p => p.Name.Equals(field)).Any();
+        }
+
+        public static IList<dynamic> FindSimilarNotNullExistingFields(dynamic obj, string field)
+        {
+            System.Reflection.FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
+            return fieldInfos.Where(p => p.Name.Contains(field) && p.GetValue(obj) != null).Select(p => p.GetValue(obj)).ToList();
         }
 
         public static bool HasParentOfAnyType(IParseTree context, IList<Type> breakIfReachTypes, IList<Type> targets) 
@@ -148,24 +230,25 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        public static bool IsLogicalExpression(IParseTree context)
-        {
-            IList<IToken> usedOperands = new List<IToken>();
-            FindUsedOperands(context, usedOperands);
-            int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
-            int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
+        //public static bool IsLogicalExpression(IParseTree context)
+        //{
 
-            IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
-            FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
-            var breakTargets = new List<Type> { typeof(Where_clauseContext), typeof(From_clauseContext), typeof(Into_clauseContext), typeof(Having_clauseContext) };
-            var targets = new List<Type> { typeof(Opt_target_listContext), typeof(Target_listContext), typeof(Sortby_listContext) };
-            c_expr_Contexts = c_expr_Contexts.Where(ctx => 
-                (((C_exprContext)ctx).Start.Type != OPEN_PAREN
-                || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN)
-                && !HasParentOfAnyType(ctx, breakTargets, targets))
-            .ToList();
-            return (c_expr_Contexts.Count + specialOperandForCExprContextsCount) - ((usedOperands.Count * 2) + specialOperandForOperandsCount) == 0;
-        }
+        //    IList<IToken> usedOperands = new List<IToken>();
+        //    FindUsedOperands(context, usedOperands);
+        //    int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
+        //    int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
+
+        //    IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
+        //    FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
+        //    var breakTargets = new List<Type> { typeof(Where_clauseContext), typeof(From_clauseContext), typeof(Into_clauseContext), typeof(Having_clauseContext) };
+        //    var targets = new List<Type> { typeof(Opt_target_listContext), typeof(Target_listContext), typeof(Sortby_listContext) };
+        //    c_expr_Contexts = c_expr_Contexts.Where(ctx =>
+        //        (((C_exprContext)ctx).Start.Type != OPEN_PAREN
+        //        || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN)
+        //        && !HasParentOfAnyType(ctx, breakTargets, targets))
+        //    .ToList();
+        //    return (c_expr_Contexts.Count + specialOperandForCExprContextsCount) - ((usedOperands.Count * 2) + specialOperandForOperandsCount) == 0;
+        //}
 
         public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
         {

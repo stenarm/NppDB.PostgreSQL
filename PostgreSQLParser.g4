@@ -3495,29 +3495,29 @@ a_expr_qual
 
 
 a_expr_lessless
-   : a_expr_or (operands+=(LESS_LESS | GREATER_GREATER) a_expr_or)*
+   : lhs=a_expr_or (operands+=(LESS_LESS | GREATER_GREATER) rhs+=a_expr_or)*
    ;
 /*17*/
 
 
 a_expr_or
-   : a_expr_and (OR a_expr_and)*
+   : lhs=a_expr_and (operands+=OR rhs+=a_expr_and)*
    ;
 /*16*/
 
 a_expr_and
-   : a_expr_between (AND a_expr_between)*
+   : lhs=a_expr_between (operands+=AND rhs+=a_expr_between)*
    ;
 /*21*/
 
 a_expr_between
-   : a_expr_in (NOT? operands+=BETWEEN SYMMETRIC? a_expr_in AND a_expr_in)?
+   : lhs=a_expr_in (NOT? operands+=BETWEEN SYMMETRIC? rhs=a_expr_in AND a_expr_in)?
    ;
 /*20*/
 
 
 a_expr_in
-   : a_expr_unary_not (NOT? operands+=IN_P in_expr)?
+   : lhs=a_expr_unary_not (NOT? operands+=IN_P rhs=in_expr)?
    ;
 /*15*/
 
@@ -3541,15 +3541,13 @@ a_expr_isnull
 
 
 a_expr_is_not
-   : a_expr_compare (IS NOT? (operands+=(NULL_P | TRUE_P | FALSE_P | UNKNOWN | DISTINCT) FROM a_expr | OF OPEN_PAREN type_list CLOSE_PAREN | DOCUMENT_P | unicode_normal_form? NORMALIZED))?
+   : lhs=a_expr_compare (IS NOT? (operands+=(NULL_P | TRUE_P | FALSE_P | UNKNOWN | DISTINCT) FROM rhs1=a_expr | operands+=OF OPEN_PAREN rhs2=type_list CLOSE_PAREN | DOCUMENT_P | unicode_normal_form? NORMALIZED))?
    ;
 /*11*/
 
 
 a_expr_compare
-   : lhs=a_expr_like (operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) rhs=a_expr_like |subquery_Op sub_type (select_with_parens | OPEN_PAREN a_expr CLOSE_PAREN) /*21*/
-
-   )?
+   : lhs=a_expr_like (operands+=(LT | GT | EQUAL | LESS_EQUALS | GREATER_EQUALS | NOT_EQUALS) rhs1=a_expr_like |subquery_Op operands1+=sub_type (rhs2=select_with_parens | OPEN_PAREN rhs3=a_expr CLOSE_PAREN))?  /*21*/
    ;
 /*10*/
 
@@ -3561,7 +3559,7 @@ a_expr_like
 
 
 a_expr_qual_op
-   : a_expr_unary_qualop (operands+=qual_op a_expr_unary_qualop)*
+   : lhs=a_expr_unary_qualop (operands+=qual_op rhs+=a_expr_unary_qualop)*
    ;
 /* 9*/
 
@@ -3573,33 +3571,31 @@ a_expr_unary_qualop
 
 
 a_expr_add
-   : a_expr_mul (operands+=(MINUS | PLUS) a_expr_mul)*
+   : lhs=a_expr_mul (operands+=(MINUS | PLUS) rhs+=a_expr_mul)*
    ;
 /* 6*/
 
 
 a_expr_mul
-   : lhs=a_expr_caret (operands+=(STAR | SLASH | PERCENT) rhs=a_expr_caret)*
+   : lhs=a_expr_caret (operands+=(STAR | SLASH | PERCENT) rhs+=a_expr_caret)*
    ;
 /* 5*/
 
 
 a_expr_caret
-   : a_expr_unary_sign (operands+=CARET a_expr)?
+   : lhs=a_expr_unary_sign (operands+=CARET rhs=a_expr)?
    ;
 /* 4*/
 
 
 a_expr_unary_sign
-   : operands+=(MINUS | PLUS)? a_expr_at_time_zone /* */
-
-
+   : (MINUS | PLUS)? a_expr_at_time_zone /* */
    ;
 /* 3*/
 
 
 a_expr_at_time_zone
-   : a_expr_collate (AT operands+=TIME ZONE a_expr)?
+   : lhs=a_expr_collate (AT operands+=TIME ZONE rhs=a_expr)?
    ;
 /* 2*/
 
