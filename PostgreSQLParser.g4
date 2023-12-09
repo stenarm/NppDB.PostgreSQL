@@ -3535,7 +3535,7 @@ a_expr_unary_not
 
 
 a_expr_isnull
-   : a_expr_is_not (ISNULL | NOTNULL)?
+   : a_expr_is_not (ISNULL | NOTNULL | (IS NULL_P) | (IS NOT NULL_P))?
    ;
 /*12*/
 
