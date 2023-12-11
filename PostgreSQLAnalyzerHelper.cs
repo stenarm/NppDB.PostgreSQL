@@ -60,8 +60,11 @@ namespace NppDB.PostgreSQL
             for (var n = 0; n < context.ChildCount; ++n)
             {
                 var child = context.GetChild(n);
-                var result = HasSpecificAggregateFunction(child, functionNames);
-                if (result) return true;
+                if (!(child is PostgreSQLParser.Simple_select_pramaryContext))
+                {
+                    var result = HasSpecificAggregateFunction(child, functionNames);
+                    if (result) return true;
+                }
             }
             return false;
         }

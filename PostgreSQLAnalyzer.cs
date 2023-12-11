@@ -65,7 +65,7 @@ namespace NppDB.PostgreSQL
                             }
                             if (!hasGroupByClause)
                             {
-                                if (tableCount > 1 && HasAggregateFunction(ctx))
+                                if (columnCount > 1 && HasAggregateFunction(ctx))
                                 {
                                     command.AddWarning(ctx, ParserMessageType.AGGREGATE_FUNCTION_WITHOUT_GROUP_BY_CLAUSE);
                                 }
@@ -410,6 +410,10 @@ namespace NppDB.PostgreSQL
                         if (token.Type == TokenConstants.EOF)
                         {
                             continue;
+                        }
+                        if (string.IsNullOrWhiteSpace(commands.Last().Text))
+                        {
+                            commands.Last().AddWarning(token, ParserMessageType.UNNECESSARY_SEMICOLON);
                         }
                         commands.Add(new ParsedTreeCommand());
                     }
