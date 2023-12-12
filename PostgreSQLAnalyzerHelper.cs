@@ -20,12 +20,41 @@ namespace NppDB.PostgreSQL
             return set.Contains(x);
         }
 
-        public static void _AnalyzeIdentifier(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
+        public static void _AnalyzeForDoubleQuotes(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
+        {
+            if (_AnalyzeForDoubleQuotes(context)) 
+            {
+                if (context.Parent != null && context.Parent is PostgreSQLParser.CollabelContext collabel)
+                {
+                    if (collabel != null && collabel.Parent is PostgreSQLParser.Target_labelContext targetLbl)
+                    {
+                        if (targetLbl.AS() == null)
+                        {
+                            command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
+                        }
+                    }
+                }
+                else if (context.Parent != null && context.Parent is PostgreSQLParser.Target_labelContext targetLb)
+                {
+                    if (targetLb.AS() == null)
+                    {
+                        command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
+                    }
+                }
+                else
+                {
+                    command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
+                }
+            }
+        }
+
+        public static bool _AnalyzeForDoubleQuotes(PostgreSQLParser.IdentifierContext context)
         {
             if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"')
             {
-                command.AddWarning(context, ParserMessageType.DOUBLE_QUOTES);
+                return true;
             }
+            return false;
         }
 
         private static int CountTables(IList<PostgreSQLParser.Table_refContext> ctxs, int count)
@@ -44,9 +73,104 @@ namespace NppDB.PostgreSQL
             return count;
         }
 
+        public static bool IsHavingClauseUsingGroupByTerm(PostgreSQLParser.Having_clauseContext ctx)
+        {
+            if (ctx.Parent != null && ctx.Parent is Simple_select_pramaryContext pramaryContext)
+            {
+                Group_clauseContext group_clauseContext = pramaryContext.group_clause();
+                if (HasText(group_clauseContext) && HasText(group_clauseContext.group_by_list()))
+                {
+                    ColumnrefContext columnRef = (ColumnrefContext)FindFirstTargetType(ctx, typeof(ColumnrefContext));
+                    if (HasText(columnRef))
+                    {
+                        Group_by_listContext group_by_listContext = group_clauseContext.group_by_list();
+                        HashSet<string> hashSet = GetGroupingTerms(group_by_listContext._grouping_term);
+                        if (columnRef.GetText().In(hashSet.ToArray()))
+                        {
+                            return true;
+                        }
+                    }
+
+                }
+            }
+            return false;
+        }
+
+        public static HashSet<string> GetGroupingTerms(IList<Group_by_itemContext> group_By_ItemContexts) 
+        {
+            HashSet<string> groupingTerms = new HashSet<string>();
+            if (group_By_ItemContexts == null) return groupingTerms;
+            foreach (Group_by_itemContext item in group_By_ItemContexts)
+            {
+                if (HasText(item))
+                {
+                    groupingTerms.Add(item.GetText());
+                }
+            }
+            return groupingTerms;
+        }
+
+        public static bool IsColumnAliasWithAggregateFunctionUsedInGroupBy(Group_clauseContext ctx, Target_elContext[] columns) 
+        {
+            if (ctx != null && columns.Length > 0) 
+            {
+                if (HasText(ctx.group_by_list())) 
+                {
+                    HashSet<string> groupingTerms = GetGroupingTerms(ctx.group_by_list()._grouping_term);
+                    if (groupingTerms.Count > 0)
+                    {
+                        foreach (Target_elContext targetEl in columns)
+                        {
+                            if (targetEl is Target_labelContext labelContext)
+                            {
+                                if (HasText(labelContext.collabel()))
+                                {
+                                    if (labelContext.collabel().GetText().In(groupingTerms.ToArray()))
+                                    {
+                                        return true;
+                                    }
+                                }
+                                else if (HasText(labelContext.identifier()))
+                                {
+                                    if (labelContext.identifier().GetText().In(groupingTerms.ToArray()))
+                                    {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
         public static bool HasAggregateFunction(IParseTree context)
         {
             return HasSpecificAggregateFunction(context, "sum", "avg", "min", "max", "count");
+        }
+
+        public static bool HasSpecificAggregateFunctionAndArgument(IParseTree context, string argument, params string[] functionNames)
+        {
+            if (context is PostgreSQLParser.Func_applicationContext ctx &&
+                ctx.func_name().GetText().ToLower().In(functionNames) &&
+                (ctx.func_arg_list()?.GetText().ToLower() == argument ||
+                ctx.func_arg_expr()?.GetText().ToLower() == argument ||
+                (HasText(ctx.STAR()) && argument == "*")))
+            {
+                return true;
+            }
+
+            for (var n = 0; n < context.ChildCount; ++n)
+            {
+                var child = context.GetChild(n);
+                if (!(child is PostgreSQLParser.Simple_select_pramaryContext))
+                {
+                    var result = HasSpecificAggregateFunctionAndArgument(child, argument, functionNames);
+                    if (result) return true;
+                }
+            }
+            return false;
         }
 
         public static bool HasSpecificAggregateFunction(IParseTree context, params string[] functionNames)
@@ -258,10 +382,19 @@ namespace NppDB.PostgreSQL
             if (contexts != null && contexts.Length > 0)
             {
                 PostgreSQLParser.Simple_select_pramaryContext ctx = contexts[0];
-                if (HasSelectStar(ctx))
+                if (IsSelectPramaryContextSelectStar(ctx))
                 {
                     return true;
                 }
+            }
+            return false;
+        }
+
+        public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext context)
+        {
+            if (context != null && HasSelectStar(context))
+            {
+                return true;
             }
             return false;
         }

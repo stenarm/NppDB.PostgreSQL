@@ -51,11 +51,12 @@ namespace NppDB.PostgreSQL
                             bool hasGroupByClause = HasGroupByClause(ctx);
                             int whereCount = CountWheres(ctx, 0);
                             int whereClauseCount = CountWhereClauses(ctx);
+                            bool hasWhereClause = HasText(ctx.where_clause());
                             if (HasMissingColumnAlias(columns))
                             {
                                 command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_ALIAS_IN_SELECT_CLAUSE);
                             }
-                            if (HasText(ctx.where_clause()) && whereCount > whereClauseCount)
+                            if (hasWhereClause && whereCount > whereClauseCount)
                             {
                                 command.AddWarning(ctx.where_clause(), ParserMessageType.MULTIPLE_WHERE_USED);
                             }
@@ -76,12 +77,12 @@ namespace NppDB.PostgreSQL
                                 {
                                     command.AddWarning(ctx.group_clause(), ParserMessageType.MISSING_COLUMN_IN_GROUP_BY_CLAUSE);
                                 }
-                                if (HasAggregateFunction(ctx.group_clause()))
+                                if (IsColumnAliasWithAggregateFunctionUsedInGroupBy(ctx.group_clause(), columns) || HasAggregateFunction(ctx.group_clause()))
                                 {
                                     command.AddWarning(ctx.group_clause(), ParserMessageType.AGGREGATE_FUNCTION_IN_GROUP_BY_CLAUSE);
                                 }
                             }
-                            if (HasOuterJoin(ctx) && HasSpecificAggregateFunction(ctx, "count"))
+                            if (HasOuterJoin(ctx) && HasSpecificAggregateFunctionAndArgument(ctx, "*", "count"))
                             {
                                 command.AddWarning(ctx, ParserMessageType.COUNT_FUNCTION_WITH_OUTER_JOIN);
                             }
@@ -100,17 +101,29 @@ namespace NppDB.PostgreSQL
                             List<IParseTree> subQueries = new List<IParseTree>();
                             FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Simple_select_pramaryContext), subQueries);
                             A_expr_inContext a_expr_inContext = (A_expr_inContext)FindFirstTargetType(ctx, typeof(A_expr_inContext));
-                            foreach (Simple_select_pramaryContext subQuery in subQueries)
+                            bool whereClauseHasExistsKeyword = false;
+                            if (hasWhereClause)
                             {
-                                if (HasSubqueryColumnMismatch(a_expr_inContext, subQuery))
+                                C_expr_existsContext value = (C_expr_existsContext)FindFirstTargetType(ctx.where_clause(), typeof(C_expr_existsContext));
+                                if (HasText(value) && value.EXISTS() != null) 
                                 {
-                                    command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                    whereClauseHasExistsKeyword = true;
                                 }
-                                if (HasSelectStar(subQuery))
+                            }
+                            if (!whereClauseHasExistsKeyword) 
+                            {
+                                foreach (Simple_select_pramaryContext subQuery in subQueries)
                                 {
-                                    command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_SUB_QUERY);
-                                }
+                                    if (HasSubqueryColumnMismatch(a_expr_inContext, subQuery))
+                                    {
+                                        command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                    }
+                                    if (HasSelectStar(subQuery))
+                                    {
+                                        command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_SUB_QUERY);
+                                    }
 
+                                }
                             }
                         }
                         break;
@@ -123,13 +136,21 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.MISSING_EXPRESSION_IN_HAVING_CLAUSE);
                             }
-                            if (!HasAggregateFunction(ctx))
+                            if (!HasAggregateFunction(ctx) && !IsHavingClauseUsingGroupByTerm(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
                             }
+                            //A_expr_compareContext compareCtx = (A_expr_compareContext)FindFirstTargetType(ctx, typeof(A_expr_compareContext));
+                            //if (HasText(compareCtx))
+                            //{
+                            //    if (compareCtx._operands != null && compareCtx._operands.Count > 0)
+                            //    {
+                            //        command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
+                            //    }
+                            //}
                             if (HasAndOrExprWithoutParens(ctx))
                             {
-                                command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_WHERE_CLAUSE);
+                                command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_HAVING_CLAUSE);
                             }
                             if (!IsLogical(ctx))
                             {
@@ -176,10 +197,25 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.Select_clauseContext ctx)
                         {
-                            if (ctx.union != null && ctx.first_intersect != null && ctx.second_intersect != null) 
+                            if ((ctx.union != null || ctx.except != null) && ctx.first_intersect != null && ctx.second_intersect != null) 
                             {
                                 if (IsSelectPramaryContextSelectStar(ctx.first_intersect?.simple_select_pramary()) 
                                     || IsSelectPramaryContextSelectStar(ctx.second_intersect?.simple_select_pramary()))
+                                {
+                                    command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_simple_select_intersect: 
+                    {
+                        if (context is PostgreSQLParser.Simple_select_intersectContext ctx)
+                        {
+                            if (ctx.intersect != null && ctx.first_pramary != null && ctx.second_pramary != null) 
+                            {
+                                if (IsSelectPramaryContextSelectStar(ctx.first_pramary) 
+                                    || IsSelectPramaryContextSelectStar(ctx.second_pramary))
                                 {
                                     command.AddWarning(ctx, ParserMessageType.SELECT_ALL_IN_UNION_STATEMENT);
                                 }
@@ -203,14 +239,22 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_sortby: 
+                case PostgreSQLParser.RULE_sortby_list: 
                     {
-                        if (context is PostgreSQLParser.SortbyContext ctx)
+                        if (context is PostgreSQLParser.Sortby_listContext ctx)
                         {
-                            AexprconstContext aexprconst = (AexprconstContext) FindFirstTargetType(ctx, typeof(AexprconstContext));
-                            if (aexprconst != null && !string.IsNullOrEmpty(aexprconst.GetText()))
+                            List<IParseTree> aexprconsts = new List<IParseTree>();
+                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.AexprconstContext), aexprconsts);
+                            foreach (IParseTree item in aexprconsts)
                             {
-                                command.AddWarning(ctx, ParserMessageType.ORDERING_BY_ORDINAL);
+                                if (item is AexprconstContext aexprconst) 
+                                {
+                                    if (aexprconst != null && !string.IsNullOrEmpty(aexprconst.GetText()))
+                                    {
+                                        command.AddWarning(ctx, ParserMessageType.ORDERING_BY_ORDINAL);
+                                        break;
+                                    }
+                                }
                             }
                         }
                         break;
@@ -276,6 +320,18 @@ namespace NppDB.PostgreSQL
                                     command.AddWarning(ctx, ParserMessageType.COLUMN_LIKE_COLUMN);
                                 }
                                 
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_a_expr_between: 
+                    {
+                        if (context is PostgreSQLParser.A_expr_betweenContext ctx && HasText(ctx))
+                        {
+                            if ((HasText(ctx.rhs) && ctx.rhs.GetText().ToLower().Equals("null")) ||
+                                    (HasText(ctx.between_r_h_s) && ctx.between_r_h_s.GetText().ToLower().Equals("null")))
+                            {
+                                command.AddWarning(ctx, ParserMessageType.EQUALITY_WITH_NULL);
                             }
                         }
                         break;
@@ -390,7 +446,7 @@ namespace NppDB.PostgreSQL
                 var child = context.GetChild(i);
                 if (child is PostgreSQLParser.IdentifierContext identifier)
                 {
-                    _AnalyzeIdentifier(identifier, commands.Last());
+                    _AnalyzeForDoubleQuotes(identifier, commands.Last());
                 }
                 if (child is ITerminalNode terminalNode)
                 {

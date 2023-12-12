@@ -2908,11 +2908,11 @@ select_no_parens
    ;
 
 select_clause
-   : first_intersect=simple_select_intersect ((union=UNION | EXCEPT) all_or_distinct second_intersect=simple_select_intersect)*
+   : first_intersect=simple_select_intersect ((union=UNION | except=EXCEPT) all_or_distinct second_intersect=simple_select_intersect)*
    ;
 
 simple_select_intersect
-    : simple_select_pramary (INTERSECT all_or_distinct simple_select_pramary)*
+    : first_pramary=simple_select_pramary (intersect=INTERSECT all_or_distinct second_pramary=simple_select_pramary)*
     ;
 
 simple_select_pramary
@@ -3511,7 +3511,7 @@ a_expr_and
 /*21*/
 
 a_expr_between
-   : lhs=a_expr_in (NOT? operands+=BETWEEN SYMMETRIC? rhs=a_expr_in AND a_expr_in)?
+   : lhs=a_expr_in (NOT? operands+=BETWEEN SYMMETRIC? rhs=a_expr_in AND between_r_h_s=a_expr_in)?
    ;
 /*20*/
 

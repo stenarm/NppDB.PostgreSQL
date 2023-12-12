@@ -2870,7 +2870,7 @@ NumericFail
    ;
 
 Numeric
-   : Digits '.' Digits? /*? replaced with + to solve problem with DOT_DOT .. but this surely must be rewriten */
+   : (MINUS)?Digits '.' Digits? /*? replaced with + to solve problem with DOT_DOT .. but this surely must be rewriten */
 
    ('E' [+-]? Digits)?
    | '.' Digits ('E' [+-]? Digits)?

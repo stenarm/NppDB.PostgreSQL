@@ -61893,6 +61893,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 	public partial class Select_clauseContext : ParserRuleContext {
 		public Simple_select_intersectContext first_intersect;
 		public IToken union;
+		public IToken except;
 		public Simple_select_intersectContext second_intersect;
 		[System.Diagnostics.DebuggerNonUserCode] public Simple_select_intersectContext[] simple_select_intersect() {
 			return GetRuleContexts<Simple_select_intersectContext>();
@@ -61906,13 +61907,13 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		[System.Diagnostics.DebuggerNonUserCode] public All_or_distinctContext all_or_distinct(int i) {
 			return GetRuleContext<All_or_distinctContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] EXCEPT() { return GetTokens(PostgreSQLParser.EXCEPT); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EXCEPT(int i) {
-			return GetToken(PostgreSQLParser.EXCEPT, i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] UNION() { return GetTokens(PostgreSQLParser.UNION); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode UNION(int i) {
 			return GetToken(PostgreSQLParser.UNION, i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] EXCEPT() { return GetTokens(PostgreSQLParser.EXCEPT); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EXCEPT(int i) {
+			return GetToken(PostgreSQLParser.EXCEPT, i);
 		}
 		public Select_clauseContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -61959,7 +61960,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				case EXCEPT:
 					{
 					State = 7966;
-					Match(EXCEPT);
+					_localctx.except = Match(EXCEPT);
 					}
 					break;
 				default:
@@ -61989,21 +61990,24 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 	}
 
 	public partial class Simple_select_intersectContext : ParserRuleContext {
+		public Simple_select_pramaryContext first_pramary;
+		public IToken intersect;
+		public Simple_select_pramaryContext second_pramary;
 		[System.Diagnostics.DebuggerNonUserCode] public Simple_select_pramaryContext[] simple_select_pramary() {
 			return GetRuleContexts<Simple_select_pramaryContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public Simple_select_pramaryContext simple_select_pramary(int i) {
 			return GetRuleContext<Simple_select_pramaryContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] INTERSECT() { return GetTokens(PostgreSQLParser.INTERSECT); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode INTERSECT(int i) {
-			return GetToken(PostgreSQLParser.INTERSECT, i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public All_or_distinctContext[] all_or_distinct() {
 			return GetRuleContexts<All_or_distinctContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public All_or_distinctContext all_or_distinct(int i) {
 			return GetRuleContext<All_or_distinctContext>(i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] INTERSECT() { return GetTokens(PostgreSQLParser.INTERSECT); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode INTERSECT(int i) {
+			return GetToken(PostgreSQLParser.INTERSECT, i);
 		}
 		public Simple_select_intersectContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -62031,7 +62035,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 7977;
-			simple_select_pramary();
+			_localctx.first_pramary = simple_select_pramary();
 			State = 7984;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
@@ -62039,11 +62043,11 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				{
 				{
 				State = 7978;
-				Match(INTERSECT);
+				_localctx.intersect = Match(INTERSECT);
 				State = 7979;
 				all_or_distinct();
 				State = 7980;
-				simple_select_pramary();
+				_localctx.second_pramary = simple_select_pramary();
 				}
 				}
 				State = 7986;
@@ -75396,7 +75400,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IToken _LESS_LESS;
 		public IList<IToken> _operands = new List<IToken>();
 		public IToken _GREATER_GREATER;
-		public IToken _tset16821;
+		public IToken _tset16829;
 		public A_expr_orContext _a_expr_or;
 		public IList<A_expr_orContext> _rhs = new List<A_expr_orContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public A_expr_orContext[] a_expr_or() {
@@ -75449,16 +75453,16 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					{
 					{
 					State = 8810;
-					_localctx._tset16821 = TokenStream.LT(1);
+					_localctx._tset16829 = TokenStream.LT(1);
 					_la = TokenStream.LA(1);
 					if ( !(_la==LESS_LESS || _la==GREATER_GREATER) ) {
-						_localctx._tset16821 = ErrorHandler.RecoverInline(this);
+						_localctx._tset16829 = ErrorHandler.RecoverInline(this);
 					}
 					else {
 						ErrorHandler.ReportMatch(this);
 					    Consume();
 					}
-					_localctx._operands.Add(_localctx._tset16821);
+					_localctx._operands.Add(_localctx._tset16829);
 					State = 8811;
 					_localctx._a_expr_or = a_expr_or();
 					_localctx._rhs.Add(_localctx._a_expr_or);
@@ -75639,6 +75643,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IToken _BETWEEN;
 		public IList<IToken> _operands = new List<IToken>();
 		public A_expr_inContext rhs;
+		public A_expr_inContext between_r_h_s;
 		[System.Diagnostics.DebuggerNonUserCode] public A_expr_inContext[] a_expr_in() {
 			return GetRuleContexts<A_expr_inContext>();
 		}
@@ -75709,7 +75714,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				State = 8842;
 				Match(AND);
 				State = 8843;
-				a_expr_in();
+				_localctx.between_r_h_s = a_expr_in();
 				}
 				break;
 			}
@@ -75951,7 +75956,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IToken _FALSE_P;
 		public IToken _UNKNOWN;
 		public IToken _DISTINCT;
-		public IToken _tset17015;
+		public IToken _tset17025;
 		public A_exprContext rhs1;
 		public IToken _OF;
 		public Type_listContext rhs2;
@@ -76034,16 +76039,16 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 				case UNKNOWN:
 					{
 					State = 8875;
-					_localctx._tset17015 = TokenStream.LT(1);
+					_localctx._tset17025 = TokenStream.LT(1);
 					_la = TokenStream.LA(1);
 					if ( !((((_la - 56)) & ~0x3f) == 0 && ((1L << (_la - 56)) & 1099515822097L) != 0 || _la==UNKNOWN) ) {
-						_localctx._tset17015 = ErrorHandler.RecoverInline(this);
+						_localctx._tset17025 = ErrorHandler.RecoverInline(this);
 					}
 					else {
 						ErrorHandler.ReportMatch(this);
 					    Consume();
 					}
-					_localctx._operands.Add(_localctx._tset17015);
+					_localctx._operands.Add(_localctx._tset17025);
 					State = 8876;
 					Match(FROM);
 					State = 8877;
@@ -76117,7 +76122,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IToken _LESS_EQUALS;
 		public IToken _GREATER_EQUALS;
 		public IToken _NOT_EQUALS;
-		public IToken _tset17084;
+		public IToken _tset17094;
 		public A_expr_likeContext rhs1;
 		public Sub_typeContext _sub_type;
 		public IList<Sub_typeContext> _operands1 = new List<Sub_typeContext>();
@@ -76182,16 +76187,16 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 			case 1:
 				{
 				State = 8893;
-				_localctx._tset17084 = TokenStream.LT(1);
+				_localctx._tset17094 = TokenStream.LT(1);
 				_la = TokenStream.LA(1);
 				if ( !(((_la) & ~0x3f) == 0 && ((1L << _la) & 44237824L) != 0) ) {
-					_localctx._tset17084 = ErrorHandler.RecoverInline(this);
+					_localctx._tset17094 = ErrorHandler.RecoverInline(this);
 				}
 				else {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				_localctx._operands.Add(_localctx._tset17084);
+				_localctx._operands.Add(_localctx._tset17094);
 				State = 8894;
 				_localctx.rhs1 = a_expr_like();
 				}
@@ -76490,7 +76495,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IToken _MINUS;
 		public IList<IToken> _operands = new List<IToken>();
 		public IToken _PLUS;
-		public IToken _tset17234;
+		public IToken _tset17244;
 		public A_expr_mulContext _a_expr_mul;
 		public IList<A_expr_mulContext> _rhs = new List<A_expr_mulContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public A_expr_mulContext[] a_expr_mul() {
@@ -76543,16 +76548,16 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					{
 					{
 					State = 8936;
-					_localctx._tset17234 = TokenStream.LT(1);
+					_localctx._tset17244 = TokenStream.LT(1);
 					_la = TokenStream.LA(1);
 					if ( !(_la==PLUS || _la==MINUS) ) {
-						_localctx._tset17234 = ErrorHandler.RecoverInline(this);
+						_localctx._tset17244 = ErrorHandler.RecoverInline(this);
 					}
 					else {
 						ErrorHandler.ReportMatch(this);
 					    Consume();
 					}
-					_localctx._operands.Add(_localctx._tset17234);
+					_localctx._operands.Add(_localctx._tset17244);
 					State = 8937;
 					_localctx._a_expr_mul = a_expr_mul();
 					_localctx._rhs.Add(_localctx._a_expr_mul);
@@ -76582,7 +76587,7 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 		public IList<IToken> _operands = new List<IToken>();
 		public IToken _SLASH;
 		public IToken _PERCENT;
-		public IToken _tset17263;
+		public IToken _tset17273;
 		public A_expr_caretContext _a_expr_caret;
 		public IList<A_expr_caretContext> _rhs = new List<A_expr_caretContext>();
 		[System.Diagnostics.DebuggerNonUserCode] public A_expr_caretContext[] a_expr_caret() {
@@ -76639,16 +76644,16 @@ public partial class PostgreSQLParser : PostgreSQLParserBase {
 					{
 					{
 					State = 8944;
-					_localctx._tset17263 = TokenStream.LT(1);
+					_localctx._tset17273 = TokenStream.LT(1);
 					_la = TokenStream.LA(1);
 					if ( !(((_la) & ~0x3f) == 0 && ((1L << _la) & 134234624L) != 0) ) {
-						_localctx._tset17263 = ErrorHandler.RecoverInline(this);
+						_localctx._tset17273 = ErrorHandler.RecoverInline(this);
 					}
 					else {
 						ErrorHandler.ReportMatch(this);
 					    Consume();
 					}
-					_localctx._operands.Add(_localctx._tset17263);
+					_localctx._operands.Add(_localctx._tset17273);
 					State = 8945;
 					_localctx._a_expr_caret = a_expr_caret();
 					_localctx._rhs.Add(_localctx._a_expr_caret);
