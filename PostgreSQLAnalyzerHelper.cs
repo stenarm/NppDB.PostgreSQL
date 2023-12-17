@@ -555,6 +555,20 @@ namespace NppDB.PostgreSQL
             return columnNames.Count != columnNamesSet.Count;
         }
 
+        public static int CountHavings(IParseTree context, int count)
+        {
+            if (string.Equals(context.GetText(), "having", StringComparison.OrdinalIgnoreCase))
+            {
+                return count + 1;
+            }
+            for (var n = 0; n < context.ChildCount; ++n)
+            {
+                var child = context.GetChild(n);
+                count = CountHavings(child, count);
+            }
+            return count;
+        }
+
         public static int CountWheres(IParseTree context, int count)
         {
             if (string.Equals(context.GetText(), "where", StringComparison.OrdinalIgnoreCase))

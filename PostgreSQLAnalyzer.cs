@@ -140,6 +140,12 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
                             }
+                            if (CountHavings(ctx, 0) > 0 && 
+                                ctx.Parent is Simple_select_pramaryContext parent && HasText(parent) 
+                                && HasText(parent.window_clause()) && CountHavings(parent.window_clause(), 0) > 0)
+                            {
+                                command.AddWarning(ctx, ParserMessageType.MULTIPLE_HAVING_USED);
+                            }
                             //A_expr_compareContext compareCtx = (A_expr_compareContext)FindFirstTargetType(ctx, typeof(A_expr_compareContext));
                             //if (HasText(compareCtx))
                             //{
