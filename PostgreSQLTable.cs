@@ -85,12 +85,17 @@ namespace NppDB.PostgreSQL
                         var functionArguments = reader["function_arguments"].ToString();
 
                         string[] functionArgumentsArray = functionArguments.Split(',');
-                        foreach (string functionArgument in functionArgumentsArray)
+                        for (int i = 0; i < functionArgumentsArray.Length; i++)
                         {
+                            string functionArgument = functionArgumentsArray[i];
                             string[] argumentNameAndType = functionArgument.Trim().Split(' ');
                             if (argumentNameAndType.Length > 1) 
                             {
                                 columns.Insert(count++, new PostgreSQLColumnInfo(argumentNameAndType[0], argumentNameAndType[1].ToUpper(), 0, 0));
+                            }
+                            else if (argumentNameAndType.Length == 1)
+                            {
+                                columns.Insert(count++, new PostgreSQLColumnInfo(argumentNameAndType[0].ToUpper(), "", 0, 0));
                             }
                         }
                     }
