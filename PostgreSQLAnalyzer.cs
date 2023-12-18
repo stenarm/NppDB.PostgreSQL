@@ -301,7 +301,7 @@ namespace NppDB.PostgreSQL
                             if (HasText(ctx.rhs))
                             {
                                 C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.rhs, typeof(C_expr_exprContext));
-                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
+                                if (ctx._ILIKE == null && value != null && value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
                                 {
                                     if (!ctx.rhs.GetText().Contains("%") && !ctx.rhs.GetText().Contains("_")) 
                                     {
