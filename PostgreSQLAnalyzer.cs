@@ -298,10 +298,10 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.A_expr_likeContext ctx && HasText(ctx))
                         {
-                            if (HasText(ctx.rhs))
+                            if (HasText(ctx.rhs) && ctx._ILIKE == null)
                             {
                                 C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.rhs, typeof(C_expr_exprContext));
-                                if (ctx._ILIKE == null && value != null && value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
+                                if (value != null && value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
                                 {
                                     if (!ctx.rhs.GetText().Contains("%") && !ctx.rhs.GetText().Contains("_")) 
                                     {
