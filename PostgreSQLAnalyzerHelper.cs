@@ -411,7 +411,11 @@ namespace NppDB.PostgreSQL
                     }
                     foreach (Join_typeContext joinType in table.join_type())
                     {
-                        if (joinType.GetText().ToLower().In("full", "left", "right", "outer"))
+                        string joinTypeText = joinType.GetText().ToLower();
+                        if (joinTypeText.Contains("full")
+                            || joinTypeText.Contains("left")
+                            || joinTypeText.Contains("right")
+                            || joinTypeText.Contains("outer"))
                         {
                             return true;
                         }
@@ -553,6 +557,33 @@ namespace NppDB.PostgreSQL
             }
             HashSet<String> columnNamesSet = new HashSet<String>(columnNames);
             return columnNames.Count != columnNamesSet.Count;
+        }
+
+        public static bool HasEqualityWithTextPattern(ParserRuleContext ctx)
+        {
+            if (HasText(ctx) && (
+                    ctx.GetText().Contains("%") ||
+                    ctx.GetText().Contains("_") ||
+                    ctx.GetText().Contains("|") ||
+                    ctx.GetText().Contains("*") ||
+                    ctx.GetText().Contains("+") ||
+                    ctx.GetText().Contains("?") ||
+                    ctx.GetText().Contains("{") ||
+                    ctx.GetText().Contains("}") ||
+                    ctx.GetText().Contains("(") ||
+                    ctx.GetText().Contains(")") ||
+                    ctx.GetText().Contains("[") ||
+                    ctx.GetText().Contains("]") ||
+                    ctx.GetText().Contains("*")
+            ))
+            {
+                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx, typeof(C_expr_exprContext));
+                if (HasText(value) && value.ChildCount > 0 && value.GetChild(0) is AexprconstContext)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static int CountHavings(IParseTree context, int count)

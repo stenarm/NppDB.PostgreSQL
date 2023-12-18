@@ -140,9 +140,10 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
                             }
-                            if (CountHavings(ctx, 0) > 0 && 
-                                ctx.Parent is Simple_select_pramaryContext parent && HasText(parent) 
-                                && HasText(parent.window_clause()) && CountHavings(parent.window_clause(), 0) > 0)
+                            int havingCountInHavingClause = CountHavings(ctx, 0);
+                            if (havingCountInHavingClause > 1 || (havingCountInHavingClause > 0 && // Sometimes second having part an go into parents' window_clause
+                                ctx.Parent is Simple_select_pramaryContext parent && HasText(parent)
+                                && HasText(parent.window_clause()) && CountHavings(parent.window_clause(), 0) > 0))
                             {
                                 command.AddWarning(ctx, ParserMessageType.MULTIPLE_HAVING_USED);
                             }
@@ -347,19 +348,9 @@ namespace NppDB.PostgreSQL
                         if (context is PostgreSQLParser.A_expr_compareContext ctx && HasText(ctx))
                         {
                             ParserRuleContext rhs = FindCompareRhs(ctx);
-                            if (HasText(rhs) && (rhs.GetText().Contains("%") || rhs.GetText().Contains("_")))
+                            if (HasEqualityWithTextPattern(rhs) || HasEqualityWithTextPattern(ctx.lhs))
                             {
-                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(rhs, typeof(C_expr_exprContext));
-                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext) {
-                                    command.AddWarning(rhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
-                                }
-                            }
-                            if (HasText(ctx.lhs) && (ctx.lhs.GetText().Contains("%") || ctx.lhs.GetText().Contains("_")))
-                            {
-                                C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(ctx.lhs, typeof(C_expr_exprContext));
-                                if (value.ChildCount > 0 && value.GetChild(0) is AexprconstContext) {
-                                    command.AddWarning(ctx.lhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
-                                }
+                                command.AddWarning(rhs, ParserMessageType.EQUALITY_WITH_TEXT_PATTERN);
                             }
                             if ((HasText(rhs) && rhs.GetText().ToLower().Equals("null")) ||
                                     (HasText(ctx.lhs) && ctx.lhs.GetText().ToLower().Equals("null")))
