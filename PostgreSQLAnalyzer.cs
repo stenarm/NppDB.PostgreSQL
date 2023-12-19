@@ -9,6 +9,7 @@ using System.Text;
 using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
 using static NppDB.PostgreSQL.PostgreSQLAnalyzerHelper;
 using static PostgreSQLParser;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace NppDB.PostgreSQL
 {
@@ -52,13 +53,41 @@ namespace NppDB.PostgreSQL
                             int whereCount = CountWheres(ctx, 0);
                             int whereClauseCount = CountWhereClauses(ctx);
                             bool hasWhereClause = HasText(ctx.where_clause());
+                            bool hasFromClause = HasText(ctx.from_clause());
+                            bool hasNonAnsiJoin = HasNonAnsiJoin(ctx);
                             if (HasMissingColumnAlias(columns))
                             {
                                 command.AddWarning(ctx, ParserMessageType.MISSING_COLUMN_ALIAS_IN_SELECT_CLAUSE);
                             }
-                            if (hasWhereClause && whereCount > whereClauseCount)
+
+                            if (hasFromClause)
                             {
-                                command.AddWarning(ctx.where_clause(), ParserMessageType.MULTIPLE_WHERE_USED);
+                                From_clauseContext from_clauseContext = ctx.from_clause();
+                                if (HasText(from_clauseContext.from_list())
+                                    && HasAllErrorNodes(from_clauseContext.from_list())
+                                    && from_clauseContext.from_list().GetText().ToLower().Contains("join"))
+                                {
+                                    command.AddWarning(ctx.where_clause(), ParserMessageType.MISSING_EXPRESSION_IN_JOIN_CLAUSE);
+                                }
+                            }
+
+                            if (hasWhereClause)
+                            {
+                                if (whereCount > whereClauseCount)
+                                {
+                                    command.AddWarning(ctx.where_clause(), ParserMessageType.MULTIPLE_WHERE_USED);
+                                }
+                            }
+                            if (hasNonAnsiJoin)
+                            {
+                                if (!hasWhereClause)
+                                {
+                                    command.AddWarning(ctx.where_clause(), ParserMessageType.MISSING_EXPRESSION_IN_JOIN_CLAUSE);
+                                }
+                                else if (hasWhereClause && !WhereClauseIdentifiersMatchTableIdentifier(ctx))
+                                {
+                                    command.AddWarning(ctx.where_clause(), ParserMessageType.MISSING_EXPRESSION_IN_JOIN_CLAUSE);
+                                }
                             }
                             if (HasDuplicateColumns(columns))
                             {
@@ -166,14 +195,20 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_from_clause:
+                case PostgreSQLParser.RULE_from_list:
                     {
-                        if (context is PostgreSQLParser.From_clauseContext ctx)
+                        if (context is PostgreSQLParser.From_listContext ctx && HasText(ctx))
                         {
-                            //if (HasJoinButNoJoinQual(ctx))
-                            //{
-                            //    command.AddWarning(ctx, ParserMessageType.MISSING_EXPRESSION_IN_JOIN_CLAUSE);
-                            //}
+                            if (ctx._tables != null && ctx._tables.Count > 0) 
+                            {
+                                foreach (Table_refContext table in ctx._tables)
+                                {
+                                    if (HasText(table.select_with_parens()) && !HasText(table.opt_alias_clause()))
+                                    {
+                                        command.AddWarning(ctx, ParserMessageType.MISSING_ALIAS_IN_FROM_SUBQUERY);
+                                    }
+                                }
+                            }
                         }
                         break;
                     }
@@ -234,6 +269,38 @@ namespace NppDB.PostgreSQL
                     {
                         if (context is PostgreSQLParser.Select_no_parensContext ctx && HasText(ctx))
                         {
+                            Simple_select_pramaryContext value = (Simple_select_pramaryContext)FindFirstTargetType(ctx, typeof(Simple_select_pramaryContext));
+                            Target_elContext[] columns = GetColumns(value);
+                            int columnCount = columns.Count();
+                            ParserRuleContext optlimitClause = FindLimitClause(ctx);
+                            if (value != null && columnCount == 1 && HasAggregateFunction(value) && HasText(optlimitClause) && optlimitClause is Limit_clauseContext limitCtx)
+                            {
+                                if (limitCtx.LIMIT() != null)
+                                {
+
+                                    command.AddWarning(limitCtx.select_limit_value(), ParserMessageType.ONE_ROW_IN_RESULT_WITH_LIMIT);
+                                    //if (HasText(limitCtx.select_limit_value()) && limitCtx.select_limit_value().ALL() == null)
+                                    //{
+                                    //    int? result = TryParseTextToInt32(limitCtx.select_limit_value().a_expr().GetText());
+                                    //    if (result != null && result == 1)
+                                    //    {
+                                    //        command.AddWarning(limitCtx.select_limit_value(), ParserMessageType.ONE_ROW_IN_RESULT_WITH_LIMIT);
+                                    //    }
+                                    //}
+                                }
+                                if (limitCtx.FETCH() != null)
+                                {
+                                    command.AddWarning(limitCtx.select_fetch_first_value(), ParserMessageType.ONE_ROW_IN_RESULT_WITH_LIMIT);
+                                    //if (HasText(limitCtx.select_fetch_first_value()))
+                                    //{
+                                    //    int? result = TryParseTextToInt32(limitCtx.select_fetch_first_value().GetText());
+                                    //    if (result != null && result == 1)
+                                    //    {
+                                    //        command.AddWarning(limitCtx.select_fetch_first_value(), ParserMessageType.ONE_ROW_IN_RESULT_WITH_LIMIT);
+                                    //    }
+                                    //}
+                                }
+                            }
                             List<IParseTree> subQueries = new List<IParseTree>();
                             FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Select_no_parensContext), subQueries);
                             foreach (Select_no_parensContext subQuery in subQueries)
@@ -241,6 +308,70 @@ namespace NppDB.PostgreSQL
                                 if (HasText(subQuery.opt_sort_clause()) && !(HasText(subQuery.opt_select_limit()) || HasText(subQuery.select_limit())))
                                 {
                                     command.AddWarning(subQuery.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
+                                }
+                                ParserRuleContext optlimit_Clause = FindLimitClause(subQuery);
+                                if (HasText(optlimit_Clause) && optlimit_Clause is Limit_clauseContext limitClause)
+                                {
+                                    if (limitClause.WITH() != null)
+                                    {
+                                        command.AddWarning(limitClause, ParserMessageType.FETCH_CLAUSE_MIGHT_RETURN_MULTIPLE_ROWS);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case PostgreSQLParser.RULE_select_limit: 
+                    {
+                        if (context is PostgreSQLParser.Select_limitContext ctx && HasText(ctx))
+                        {
+                            if (HasText(ctx.limit_clause())) 
+                            {
+                                Limit_clauseContext limitCtx = ctx.limit_clause();
+                                if (limitCtx.LIMIT() != null)
+                                {
+                                    if (HasText(limitCtx.select_limit_value()) && limitCtx.select_limit_value().ALL() == null)
+                                    {
+                                        int? result = TryParseTextToInt32(limitCtx.select_limit_value().a_expr().GetText());
+                                        if (result != null && result < 0)
+                                        {
+                                            command.AddWarning(limitCtx.select_limit_value(), ParserMessageType.LIMIT_CONSTRAINT);
+                                        }
+                                    }
+                                }
+                                if (limitCtx.FETCH() != null)
+                                {
+                                    if (HasText(limitCtx.select_fetch_first_value()))
+                                    {
+                                        int? result = TryParseTextToInt32(limitCtx.select_fetch_first_value().GetText());
+                                        if (result != null && result < 0)
+                                        {
+                                            command.AddWarning(limitCtx.select_fetch_first_value(), ParserMessageType.LIMIT_CONSTRAINT);
+                                        }
+                                    }
+                                }
+                            }
+                            if (HasText(ctx.offset_clause())) 
+                            {
+                                Offset_clauseContext offsetCtx = ctx.offset_clause();
+                                if (offsetCtx.OFFSET() != null)
+                                {
+                                    if (HasText(offsetCtx.select_offset_value()))
+                                    {
+                                        int? result = TryParseTextToInt32(offsetCtx.select_offset_value().a_expr().GetText());
+                                        if (result != null && result < 0)
+                                        {
+                                            command.AddWarning(offsetCtx.select_offset_value(), ParserMessageType.LIMIT_CONSTRAINT);
+                                        }
+                                    }
+                                    else if (HasText(offsetCtx.select_fetch_first_value()))
+                                    {
+                                        int? result = TryParseTextToInt32(offsetCtx.select_fetch_first_value().GetText());
+                                        if (result != null && result < 0)
+                                        {
+                                            command.AddWarning(offsetCtx.select_fetch_first_value(), ParserMessageType.LIMIT_CONSTRAINT);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -419,6 +550,19 @@ namespace NppDB.PostgreSQL
             if (HasText(ctx.rhs3)) 
             {
                 return ctx.rhs3;
+            }
+            return null;
+        }
+
+        private static ParserRuleContext FindLimitClause(Select_no_parensContext ctx)
+        {
+            if (HasText(ctx.opt_select_limit()))
+            {
+                return ctx.opt_select_limit().select_limit().limit_clause();
+            }
+            if (HasText(ctx.select_limit()))
+            {
+                return ctx.select_limit().limit_clause();
             }
             return null;
         }

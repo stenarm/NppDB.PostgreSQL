@@ -3131,11 +3131,11 @@ from_clause
 
 from_list
    : non_ansi_join
-   | tables+=table_ref (COMMA tables+=table_ref)*
+   | tables+=table_ref (from_commas+=COMMA tables+=table_ref)*
    ;
 
 non_ansi_join
-   : tables+=table_ref (COMMA tables+=table_ref)+
+   : tables+=table_ref (from_commas+=COMMA tables+=table_ref)+
    ;
 
 table_ref

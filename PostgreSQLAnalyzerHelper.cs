@@ -173,8 +173,26 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
+
+        public static int? TryParseTextToInt32(String text) 
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            try
+            {
+                return Int32.Parse(text);
+            }
+            catch (FormatException)
+            {
+            }
+            return null;
+        }
+
         public static bool HasSpecificAggregateFunction(IParseTree context, params string[] functionNames)
         {
+            if (context is PostgreSQLParser.Select_no_parensContext)
+            {
+                return false;
+            }
             if (context is PostgreSQLParser.Func_applicationContext ctx &&
                 ctx.func_name().GetText().ToLower().In(functionNames))
             {
@@ -495,6 +513,62 @@ namespace NppDB.PostgreSQL
         public static bool HasGroupByClause(Simple_select_pramaryContext ctx)
         {
             return ctx.group_clause() != null && !string.IsNullOrEmpty(ctx.group_clause().GetText());
+        }
+
+        public static bool HasAllErrorNodes(IParseTree ctx)
+        {
+            if (!HasText(ctx)) return false;
+            for (int i = 0; i < ctx.ChildCount; i++)
+            {
+                if (!(ctx.GetChild(i) is ErrorNodeImpl)) 
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static bool WhereClauseIdentifiersMatchTableIdentifier(Simple_select_pramaryContext ctx)
+        {
+            Where_clauseContext where_clauseContext = ctx.where_clause();
+
+            IList<IParseTree> whereColumnRefs = new List<IParseTree>();
+            FindAllTargetTypes(where_clauseContext, typeof(ColumnrefContext), whereColumnRefs);
+
+            Non_ansi_joinContext non_ansi_joinContext = ctx.from_clause().from_list().non_ansi_join();
+            IList<IParseTree> nonAnsiJoinTableRefs = new List<IParseTree>();
+            FindAllTargetTypes(non_ansi_joinContext, typeof(Table_refContext), nonAnsiJoinTableRefs);
+
+            HashSet<String> whereColumnRef_identifiers = new HashSet<string>();
+            foreach (IParseTree whereColumnRef in whereColumnRefs) 
+            {
+                if (whereColumnRef is ColumnrefContext columnref && HasText(columnref)) 
+                {
+                    whereColumnRef_identifiers.Add(columnref.colid().GetText().ToLower());
+                }
+            }
+            HashSet<String> nonAnsiJoinTableRef_identifiers = new HashSet<string>();
+            foreach (IParseTree nonAnsiJoinTableRef in nonAnsiJoinTableRefs)
+            {
+                if (nonAnsiJoinTableRef is Table_refContext tableRef && HasText(tableRef))
+                {
+                    if (HasText(tableRef.opt_alias_clause()) && !tableRef.opt_alias_clause().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
+                    {
+                        return false;
+                    }
+                    else if (!tableRef.relation_expr().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        public static bool HasNonAnsiJoin(Simple_select_pramaryContext ctx)
+        {
+            return HasText(ctx.from_clause()) && HasText(ctx.from_clause().from_list()) && HasText(ctx.from_clause().from_list().non_ansi_join());
         }
 
         public static bool HasDistinctClause(Simple_select_pramaryContext ctx)
