@@ -556,7 +556,7 @@ namespace NppDB.PostgreSQL
                     {
                         return false;
                     }
-                    else if (!tableRef.relation_expr().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
+                    else if (!HasText(tableRef.opt_alias_clause()) && !tableRef.relation_expr().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
                     {
                         return false;
                     }
