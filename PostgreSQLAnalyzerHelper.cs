@@ -145,6 +145,15 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
+        public static bool AllHaveAggregateFunction(IParseTree[] contexts) 
+        {
+            foreach (IParseTree context in contexts)
+            {
+                if (!HasAggregateFunction(context)) return false;
+            }
+            return true;
+        }
+
         public static bool HasAggregateFunction(IParseTree context)
         {
             return HasSpecificAggregateFunction(context, "sum", "avg", "min", "max", "count");
@@ -171,20 +180,6 @@ namespace NppDB.PostgreSQL
                 }
             }
             return false;
-        }
-
-
-        public static int? TryParseTextToInt32(String text) 
-        {
-            if (string.IsNullOrEmpty(text)) return null;
-            try
-            {
-                return Int32.Parse(text);
-            }
-            catch (FormatException)
-            {
-            }
-            return null;
         }
 
         public static bool HasSpecificAggregateFunction(IParseTree context, params string[] functionNames)
@@ -466,6 +461,23 @@ namespace NppDB.PostgreSQL
                 && ctx?.opt_target_list()?.target_list()?.target_el()[0] is PostgreSQLParser.Target_starContext;
         }
 
+        public static IParseTree FindFirstTargetTypeParent(IParseTree context, Type target)
+        {
+            if (context == null) return null;
+
+            var parent = context.Parent;
+            if (target.IsAssignableFrom(parent.GetType()))
+            {
+                return parent;
+            }
+            var result = FindFirstTargetTypeParent(parent, target);
+            if (result != null)
+            {
+                return result;
+            }
+            return null;
+        }
+
         public static IParseTree FindFirstTargetType(IParseTree context, Type target)
         {
             for (var n = 0; n < context.ChildCount; ++n)
@@ -595,6 +607,10 @@ namespace NppDB.PostgreSQL
             if (ctx?.opt_target_list()?.target_list()?.target_el() != null) 
             {
                 return ctx.opt_target_list().target_list().target_el();
+            }
+            if (ctx?.target_list()?.target_el() != null) 
+            {
+                return ctx.target_list().target_el();
             }
             return new Target_elContext[0];
         }
@@ -754,6 +770,37 @@ namespace NppDB.PostgreSQL
                     || ((C_exprContext)c_expr_ctx).Stop.Type != CLOSE_PAREN)
                 .ToList();
                 if (c_expr_Contexts.Count != subQueryColumnCount)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool IsValueNegative(String text) 
+        {
+            if (float.TryParse(text, out float floatOut) && floatOut < 0) 
+            {
+                return true;
+            }
+            if (double.TryParse(text, out double doubleOut) && doubleOut < 0) 
+            {
+                return true;
+            }
+            if (int.TryParse(text, out int intOut) && intOut < 0) 
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public static bool HasWhereClauseWithIn(IParseTree context)
+        {
+            Simple_select_pramaryContext value = (Simple_select_pramaryContext)FindFirstTargetType(context, typeof(Simple_select_pramaryContext));
+            if (HasText(value))
+            {
+                A_expr_inContext inContext = (A_expr_inContext)FindFirstTargetType(context, typeof(A_expr_inContext));
+                if (HasText(inContext) && inContext.IN_P() != null) 
                 {
                     return true;
                 }
