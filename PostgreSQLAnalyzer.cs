@@ -157,14 +157,6 @@ namespace NppDB.PostgreSQL
                             {
                                 command.AddWarning(ctx, ParserMessageType.MULTIPLE_HAVING_USED);
                             }
-                            //A_expr_compareContext compareCtx = (A_expr_compareContext)FindFirstTargetType(ctx, typeof(A_expr_compareContext));
-                            //if (HasText(compareCtx))
-                            //{
-                            //    if (compareCtx._operands != null && compareCtx._operands.Count > 0)
-                            //    {
-                            //        command.AddWarning(ctx, ParserMessageType.HAVING_CLAUSE_WITHOUT_AGGREGATE_FUNCTION);
-                            //    }
-                            //}
                             if (HasAndOrExprWithoutParens(ctx))
                             {
                                 command.AddWarning(ctx, ParserMessageType.AND_OR_MISSING_PARENTHESES_IN_HAVING_CLAUSE);
@@ -243,17 +235,29 @@ namespace NppDB.PostgreSQL
                             List<IParseTree> subQueries = new List<IParseTree>();
                             FindAllTargetTypes(aExpr, typeof(PostgreSQLParser.Simple_select_pramaryContext), subQueries);
                             A_expr_inContext a_expr_inContext = (A_expr_inContext)FindFirstTargetType(aExpr, typeof(A_expr_inContext));
-                            foreach (Simple_select_pramaryContext subQuery in subQueries)
+                            A_expr_compareContext a_expr_compareContext = (A_expr_compareContext)FindFirstTargetType(aExpr, typeof(A_expr_compareContext));
+                            Simple_select_pramaryContext subQuery = (Simple_select_pramaryContext)FindFirstTargetType(aExpr, typeof(Simple_select_pramaryContext));
+                            if (subQuery != null) 
                             {
-                                if (HasSubqueryColumnMismatch(a_expr_inContext, subQuery))
+                                if (a_expr_inContext != null && a_expr_inContext.ChildCount > 1)
                                 {
-                                    command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                    if (HasSubqueryColumnMismatch(a_expr_inContext.a_expr_unary_not(), subQuery))
+                                    {
+                                        command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                    }
+                                } 
+                                else if (a_expr_compareContext != null && a_expr_compareContext.ChildCount > 1)
+                                {
+                                    if (HasSubqueryColumnMismatch(a_expr_compareContext.lhs, subQuery))
+                                    {
+                                        command.AddWarning(subQuery, ParserMessageType.SUBQUERY_COLUMN_COUNT_MISMATCH);
+                                    }
                                 }
+                                
                                 if (HasSelectStar(subQuery))
                                 {
                                     command.AddWarning(aExpr, ParserMessageType.SELECT_ALL_IN_SUB_QUERY);
                                 }
-
                             }
                         }
                         break;

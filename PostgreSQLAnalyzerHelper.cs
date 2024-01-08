@@ -370,26 +370,6 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        //public static bool IsLogicalExpression(IParseTree context)
-        //{
-
-        //    IList<IToken> usedOperands = new List<IToken>();
-        //    FindUsedOperands(context, usedOperands);
-        //    int specialOperandForOperandsCount = usedOperands.Where(operand => operand.Type.In(BETWEEN)).Count();
-        //    int specialOperandForCExprContextsCount = usedOperands.Where(operand => operand.Type.In(IN_P)).Count();
-
-        //    IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
-        //    FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
-        //    var breakTargets = new List<Type> { typeof(Where_clauseContext), typeof(From_clauseContext), typeof(Into_clauseContext), typeof(Having_clauseContext) };
-        //    var targets = new List<Type> { typeof(Opt_target_listContext), typeof(Target_listContext), typeof(Sortby_listContext) };
-        //    c_expr_Contexts = c_expr_Contexts.Where(ctx =>
-        //        (((C_exprContext)ctx).Start.Type != OPEN_PAREN
-        //        || ((C_exprContext)ctx).Stop.Type != CLOSE_PAREN)
-        //        && !HasParentOfAnyType(ctx, breakTargets, targets))
-        //    .ToList();
-        //    return (c_expr_Contexts.Count + specialOperandForCExprContextsCount) - ((usedOperands.Count * 2) + specialOperandForOperandsCount) == 0;
-        //}
-
         public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
         {
             if (contexts != null && contexts.Length > 0)
@@ -438,27 +418,20 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        //public static bool HasJoinButNoJoinQual(PostgreSQLParser.From_clauseContext context)
-        //{
-        //    if (context?.from_list()?._tables != null && context?.from_list()?._tables.Count > 0)
-        //    {
-        //        foreach (Table_refContext table in context?.from_list()?._tables)
-        //        {
-                    
-        //            if (table.JOIN().Length > 0)
-        //            {
-        //                return true;
-        //            }
-        //        }
-        //    }
-        //    return false;
-        //}
-
         public static bool HasSelectStar(Simple_select_pramaryContext ctx)
         {
-            return ctx.opt_target_list()?.target_list()?.target_el() != null
-                && ctx?.opt_target_list()?.target_list()?.target_el()?.Length > 0
-                && ctx?.opt_target_list()?.target_list()?.target_el()[0] is PostgreSQLParser.Target_starContext;
+            if (ctx.opt_target_list()?.target_list()?.target_el() != null
+                && ctx?.opt_target_list()?.target_list()?.target_el()?.Length > 0) 
+            {
+                foreach (var item in ctx?.opt_target_list()?.target_list()?.target_el())
+                {
+                    if (item is PostgreSQLParser.Target_starContext) 
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         public static IParseTree FindFirstTargetTypeParent(IParseTree context, Type target)
@@ -757,24 +730,17 @@ namespace NppDB.PostgreSQL
             return null;
         }
 
-        public static bool HasSubqueryColumnMismatch(A_expr_inContext a_expr_inContext, Simple_select_pramaryContext subQuery) 
+        public static bool HasSubqueryColumnMismatch(IParseTree context, Simple_select_pramaryContext subQuery) 
         {
             Target_elContext[] subQueryColumns = GetColumns(subQuery);
             int subQueryColumnCount = subQueryColumns.Count();
-            if (a_expr_inContext != null && a_expr_inContext.ChildCount > 1)
-            {
-                IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
-                FindAllTargetTypes(a_expr_inContext.a_expr_unary_not(), typeof(C_exprContext), c_expr_Contexts);
-                c_expr_Contexts = c_expr_Contexts.Where(c_expr_ctx =>
-                    ((C_exprContext)c_expr_ctx).Start.Type != OPEN_PAREN
-                    || ((C_exprContext)c_expr_ctx).Stop.Type != CLOSE_PAREN)
-                .ToList();
-                if (c_expr_Contexts.Count != subQueryColumnCount)
-                {
-                    return true;
-                }
-            }
-            return false;
+            IList<IParseTree> c_expr_Contexts = new List<IParseTree>();
+            FindAllTargetTypes(context, typeof(C_exprContext), c_expr_Contexts);
+            c_expr_Contexts = c_expr_Contexts.Where(c_expr_ctx =>
+                ((C_exprContext)c_expr_ctx).Start.Type != OPEN_PAREN
+                || ((C_exprContext)c_expr_ctx).Stop.Type != CLOSE_PAREN)
+            .ToList();
+            return c_expr_Contexts.Count != subQueryColumnCount;
         }
 
         public static bool IsValueNegative(String text) 
