@@ -9,6 +9,7 @@ namespace NppDB.PostgreSQL
         {
             Query = "select n.nspname as function_schema, " +
                 "p.proname as function_name, " +
+                "p.oid as function_oid, " +
                 "l.lanname as function_language, " +
                 "case when l.lanname = 'internal' " +
                 "then p.prosrc " +
@@ -31,6 +32,7 @@ namespace NppDB.PostgreSQL
             return new PostgreSQLView
             {
                 Text = reader["function_name"].ToString(),
+                FuncOID = reader["function_oid"].ToString(),
                 TypeName = "FUNCTION"
             };
         }

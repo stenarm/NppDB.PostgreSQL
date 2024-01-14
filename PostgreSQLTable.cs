@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using Npgsql;
 using System.Collections;
+using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
 
 namespace NppDB.PostgreSQL
 {
@@ -13,6 +14,7 @@ namespace NppDB.PostgreSQL
     {
         public string Definition { get; set; }
         public string TypeName { get; set; } = "TABLE";
+        public string FuncOID { get; set; }
         public PostgreSQLTable()
         {
             SelectedImageKey = ImageKey = "Table";
@@ -75,15 +77,14 @@ namespace NppDB.PostgreSQL
             String query = "select pg_get_function_arguments(p.oid) as function_arguments " +
                 "from pg_proc p " +
                 "left join pg_namespace n on p.pronamespace = n.oid " +
-                "where n.nspname = '{0}' and p.proname = '{1}'";
-            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text), connection))
+                "where n.nspname = '{0}' and p.proname = '{1}' and p.oid = '{2}'";
+            using (NpgsqlCommand command = new NpgsqlCommand(String.Format(query, GetSchemaName(), Text, FuncOID), connection))
             {
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
                         var functionArguments = reader["function_arguments"].ToString();
-
                         string[] functionArgumentsArray = functionArguments.Split(',');
                         for (int i = 0; i < functionArgumentsArray.Length; i++)
                         {
@@ -91,11 +92,19 @@ namespace NppDB.PostgreSQL
                             string[] argumentNameAndType = functionArgument.Trim().Split(' ');
                             if (argumentNameAndType.Length > 1) 
                             {
-                                columns.Insert(count++, new PostgreSQLColumnInfo(argumentNameAndType[0], argumentNameAndType[1].ToUpper(), 0, 0));
+                                if (!string.IsNullOrEmpty(argumentNameAndType[0]) && !string.IsNullOrEmpty(argumentNameAndType[1]))
+                                {
+                                    PostgreSQLColumnInfo postgreSQLColumnInfo = new PostgreSQLColumnInfo(argumentNameAndType[0], argumentNameAndType[1].ToUpper(), 0, 0);
+                                    columns.Insert(count++, postgreSQLColumnInfo);
+                                }
                             }
                             else if (argumentNameAndType.Length == 1)
                             {
-                                columns.Insert(count++, new PostgreSQLColumnInfo(argumentNameAndType[0].ToUpper(), "", 0, 0));
+                                if (!string.IsNullOrEmpty(argumentNameAndType[0]))
+                                {
+                                    PostgreSQLColumnInfo postgreSQLColumnInfo = new PostgreSQLColumnInfo(argumentNameAndType[0].ToUpper(), "", 0, 0);
+                                    columns.Insert(count++, postgreSQLColumnInfo);
+                                }
                             }
                         }
                     }
@@ -300,12 +309,25 @@ namespace NppDB.PostgreSQL
             {
                 if (schemaName != "information_schema" && schemaName != "pg_catalog")
                 {
-                    menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                    if (TypeName != "FUNCTION")
                     {
-                        var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
-                        var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                        host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
-                    }));
+                        menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                        {
+                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
+                            var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                            host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                        }));
+                    }
+                    else
+                    {
+                        menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                        {
+                            string paramsQuery = collectFunctionParams(connect);
+                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\"{paramsQuery};";
+                            var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
+                            host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
+                        }));
+                    }
                 }
             }
             // Needed an invisible button so previous buttons' text isn't cut off
@@ -313,6 +335,50 @@ namespace NppDB.PostgreSQL
             dummy.Visible = false;
             menuList.Items.Add(dummy);
             return menuList;
+        }
+
+        private string collectFunctionParams(PostgreSQLConnect connect)
+        {
+            var paramsQuery = "()";
+            using (var cnn = connect.GetConnection())
+            {
+                try
+                {
+                    cnn.Open();
+                    var columns = new List<PostgreSQLColumnInfo>();
+                    CollectFunctionColumns(cnn, ref columns);
+                    if (columns.Count > 0)
+                    {
+                        paramsQuery = "(";
+                        for (int i = 0; i < columns.Count; i++)
+                        {
+                            PostgreSQLColumnInfo column = columns[i];
+                            if (column.ColumnType == "")
+                            {
+                                paramsQuery += column.ColumnName;
+                            }
+                            else
+                            {
+                                paramsQuery += column.ColumnType;
+                            }
+                            if (i + 1 < columns.Count)
+                            {
+                                paramsQuery += ",";
+                            }
+                        }
+                        paramsQuery += ")";
+                    }
+                }
+                catch (Exception ex)
+                {
+                }
+                finally
+                {
+                    cnn.Close();
+                }
+            }
+
+            return paramsQuery;
         }
 
         private PostgreSQLConnect GetDBConnect()
