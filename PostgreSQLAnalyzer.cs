@@ -624,6 +624,33 @@ namespace NppDB.PostgreSQL
             if (context is PostgreSQLParser.RootContext && commands.Last().Context == null)
             {
                 commands.Last().Context = context; // base starting branch
+                if (context.ChildCount > 0)
+                {
+                    var errorFreeCount = 0;
+                    var errorCount = 0;
+                    ParserRuleContext notErrorChild = null;
+                    for (var i = 0; i < context.ChildCount; ++i)
+                    {
+                        var c = context.GetChild(i);
+                        if (c is ErrorNodeImpl)
+                        {
+                            errorCount++;
+                        }
+                        else
+                        {
+                            notErrorChild = c as ParserRuleContext;
+                            errorFreeCount++;
+                        }
+                        if (errorFreeCount > 1)
+                        {
+                            break;
+                        }
+                    }
+                    if (errorFreeCount < 2 && errorCount > 0)
+                    {
+                        commands.Last().AddWarningToEnd(notErrorChild, ParserMessageType.PARSING_ERROR);
+                    }
+                }
             }
             _AnalyzeRuleContext(context, commands.Last());
             for (var i = 0; i < context.ChildCount; ++i)

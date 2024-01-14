@@ -26,6 +26,24 @@ namespace NppDB.PostgreSQL
             Warnings.Add(warning);
         }
 
+        public void AddWarningToEnd(ParserRuleContext ctx, ParserMessageType type)
+        {
+            var startToken = ctx.Stop;
+            var stopToken = ctx.Stop;
+            var warning = new ParserWarning
+            {
+                Type = type,
+                Text = nameof(type),
+                StartLine = startToken.Line,
+                StartColumn = startToken.Column,
+                StartOffset = startToken.StartIndex,
+                StopLine = stopToken.Line,
+                StopColumn = stopToken.Column,
+                StopOffset = stopToken.StopIndex,
+            };
+            AnalyzeErrors.Add(warning);
+        }
+
         public void AddWarning(IToken token, ParserMessageType type)
         {
             var warning = new ParserWarning
