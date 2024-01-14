@@ -2,6 +2,7 @@
 using Antlr4.Runtime.Tree;
 using NppDB.Comm;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -309,12 +310,12 @@ namespace NppDB.PostgreSQL
                                 {
                                     command.AddWarning(subQuery.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
                                 }
-                                ParserRuleContext optlimit_Clause = FindLimitClause(subQuery);
-                                if (HasText(optlimit_Clause) && optlimit_Clause is Limit_clauseContext limitClause)
+                                if (!HasWhereClauseWithMultipleAllowed(context, subQuery))
                                 {
-                                    if (limitClause.WITH() != null && !HasWhereClauseWithIn(context))
+                                    Limit_clauseContext limit_clauseContext = ShouldAddFetchMultipleRowsWarning(subQuery);
+                                    if (HasText(limit_clauseContext))
                                     {
-                                        command.AddWarning(limitClause, ParserMessageType.FETCH_CLAUSE_MIGHT_RETURN_MULTIPLE_ROWS);
+                                        command.AddWarning(limit_clauseContext, ParserMessageType.FETCH_CLAUSE_MIGHT_RETURN_MULTIPLE_ROWS);
                                     }
                                 }
                             }
@@ -361,12 +362,12 @@ namespace NppDB.PostgreSQL
                                 {
                                     command.AddWarning(subQuery.opt_sort_clause(), ParserMessageType.ORDER_BY_CLAUSE_IN_SUB_QUERY_WITHOUT_LIMIT);
                                 }
-                                ParserRuleContext optlimit_Clause = FindLimitClause(subQuery);
-                                if (HasText(optlimit_Clause) && optlimit_Clause is Limit_clauseContext limitClause)
+                                if (!HasWhereClauseWithMultipleAllowed(ctx, subQuery)) 
                                 {
-                                    if (limitClause.WITH() != null && !HasWhereClauseWithIn(ctx))
+                                    Limit_clauseContext limit_clauseContext = ShouldAddFetchMultipleRowsWarning(subQuery);
+                                    if (HasText(limit_clauseContext)) 
                                     {
-                                        command.AddWarning(limitClause, ParserMessageType.FETCH_CLAUSE_MIGHT_RETURN_MULTIPLE_ROWS);
+                                        command.AddWarning(limit_clauseContext, ParserMessageType.FETCH_CLAUSE_MIGHT_RETURN_MULTIPLE_ROWS);
                                     }
                                 }
                             }
@@ -598,19 +599,6 @@ namespace NppDB.PostgreSQL
             return null;
         }
 
-        private static ParserRuleContext FindLimitClause(Select_no_parensContext ctx)
-        {
-            if (HasText(ctx.opt_select_limit()))
-            {
-                return ctx.opt_select_limit().select_limit().limit_clause();
-            }
-            if (HasText(ctx.select_limit()))
-            {
-                return ctx.select_limit().limit_clause();
-            }
-            return null;
-        }
-
         private static int _CollectCommands(
             RuleContext context,
             CaretPosition caretPosition,
@@ -648,7 +636,7 @@ namespace NppDB.PostgreSQL
                     }
                     if (errorFreeCount < 2 && errorCount > 0)
                     {
-                        commands.Last().AddWarningToEnd(notErrorChild, ParserMessageType.PARSING_ERROR);
+                        commands.Last().AddAnalyzeErrors(notErrorChild, ParserMessageType.PARSING_ERROR);
                     }
                 }
             }

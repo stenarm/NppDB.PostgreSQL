@@ -254,6 +254,7 @@ namespace NppDB.PostgreSQL
                 var child = context.GetChild(n);
                 IList<dynamic> lhs = FindSimilarNotNullExistingFields(child, "lhs");
                 IList<dynamic> rhs = FindSimilarNotNullExistingFields(child, "rhs");
+                IList<IToken> operands = FindOperands(child);
                 IList<IParseTree> rhsCleaned = new List<IParseTree>();
                 foreach (dynamic expr in rhs) 
                 {
@@ -279,7 +280,6 @@ namespace NppDB.PostgreSQL
                         }
                     }
                 }
-                IList<IToken> operands = FindOperands(child);
                 if (rhsCleaned.Count != operands.Count)
                 {
                     return false;
@@ -341,33 +341,26 @@ namespace NppDB.PostgreSQL
             return fieldInfos.Where(p => p.Name.Contains(field) && p.GetValue(obj) != null).Select(p => p.GetValue(obj)).ToList();
         }
 
-        public static bool HasParentOfAnyType(IParseTree context, IList<Type> breakIfReachTypes, IList<Type> targets) 
+        public static IParseTree FindParentOfAnyType(IParseTree context, IList<Type> targets)
         {
             var parent = context.Parent;
-            if (parent == null) 
+            if (parent == null)
             {
-                return false;
-            }
-            foreach (Type target in breakIfReachTypes)
-            {
-                if (target.IsAssignableFrom(parent.GetType()))
-                {
-                    return false;
-                }
+                return null;
             }
             foreach (Type target in targets)
             {
                 if (target.IsAssignableFrom(parent.GetType()))
                 {
-                    return true;
+                    return parent;
                 }
             }
-            var result = HasParentOfAnyType(parent, breakIfReachTypes, targets);
-            if (result)
+            var result = FindParentOfAnyType(parent, targets);
+            if (result != null)
             {
                 return result;
             }
-            return false;
+            return null;
         }
 
         public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
@@ -760,7 +753,27 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        public static bool HasWhereClauseWithIn(IParseTree context)
+        public static bool HasWhereClauseWithMultipleAllowed(IParseTree context, IParseTree subquery)
+        {
+            Simple_select_pramaryContext value = (Simple_select_pramaryContext)FindFirstTargetType(context, typeof(Simple_select_pramaryContext));
+            if (HasText(value))
+            {
+                A_expr_inContext inContext = (A_expr_inContext)FindFirstTargetType(context, typeof(A_expr_inContext));
+                if (HasText(inContext) && inContext.IN_P() != null)
+                {
+                    return true;
+                }
+            }
+
+            IParseTree exprParent = FindParentOfAnyType(subquery, new List<Type> { typeof(A_expr_compareContext) });
+            if (HasText(exprParent) && exprParent is A_expr_compareContext compareContext && compareContext.sub_type() != null)
+            {
+                return true;
+            }
+            return false;
+        }
+
+        public static bool HasWhereClauseWithMultipleAllowed(IParseTree context)
         {
             Simple_select_pramaryContext value = (Simple_select_pramaryContext)FindFirstTargetType(context, typeof(Simple_select_pramaryContext));
             if (HasText(value))
@@ -771,7 +784,41 @@ namespace NppDB.PostgreSQL
                     return true;
                 }
             }
+
+            IParseTree exprParent = FindParentOfAnyType(context, new List<Type> { typeof(A_expr_compareContext) });
+            if (HasText(exprParent) && exprParent is A_expr_compareContext compareContext && compareContext.sub_type() != null) 
+            {
+                return true;
+            }
             return false;
+        }
+        public static ParserRuleContext FindLimitClause(Select_no_parensContext ctx)
+        {
+            if (HasText(ctx.opt_select_limit()))
+            {
+                return ctx.opt_select_limit().select_limit().limit_clause();
+            }
+            if (HasText(ctx.select_limit()))
+            {
+                return ctx.select_limit().limit_clause();
+            }
+            return null;
+        }
+
+        public static Limit_clauseContext ShouldAddFetchMultipleRowsWarning(Select_no_parensContext subQuery) 
+        {
+            ParserRuleContext optlimit_Clause = FindLimitClause(subQuery);
+            if (HasText(optlimit_Clause) && optlimit_Clause is Limit_clauseContext limitClause)
+            {
+                if (limitClause.WITH() != null
+                        || (HasText(limitClause.select_fetch_first_value()) && limitClause.select_fetch_first_value().GetText() != "1")
+                        || (HasText(limitClause.select_limit_value()) && limitClause.select_limit_value().GetText() != "1")
+                    )
+                {
+                    return limitClause;
+                }
+            }
+            return null;
         }
 
     }

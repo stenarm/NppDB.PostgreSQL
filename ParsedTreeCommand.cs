@@ -26,10 +26,10 @@ namespace NppDB.PostgreSQL
             Warnings.Add(warning);
         }
 
-        public void AddWarningToEnd(ParserRuleContext ctx, ParserMessageType type)
+        public void AddAnalyzeErrors(ParserRuleContext ctx, ParserMessageType type)
         {
-            var startToken = ctx.Stop;
-            var stopToken = ctx.Stop;
+            var startToken = ctx.Start;
+            var stopToken = ctx.Start;
             var warning = new ParserWarning
             {
                 Type = type,
