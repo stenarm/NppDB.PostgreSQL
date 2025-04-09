@@ -166,28 +166,20 @@
             // nmrPort
             // 
             this.nmrPort.Location = new System.Drawing.Point(280, 120);
-            this.nmrPort.Maximum = new decimal(new int[] {
-            1000000,
-            0,
-            0,
-            0});
+            this.nmrPort.Maximum = new decimal(new int[] { 1000000, 0, 0, 0 });
             this.nmrPort.Name = "nmrPort";
             this.nmrPort.Size = new System.Drawing.Size(225, 20);
             this.nmrPort.TabIndex = 12;
-            this.nmrPort.Value = new decimal(new int[] {
-            5432,
-            0,
-            0,
-            0});
+            this.nmrPort.Value = new decimal(new int[] { 5432, 0, 0, 0 });
             // 
             // lblConnName
             // 
             this.lblConnName.AutoSize = true;
             this.lblConnName.Location = new System.Drawing.Point(184, 39);
             this.lblConnName.Name = "lblConnName";
-            this.lblConnName.Size = new System.Drawing.Size(90, 13);
+            this.lblConnName.Size = new System.Drawing.Size(169, 13);
             this.lblConnName.TabIndex = 993;
-            this.lblConnName.Text = "Connection name";
+            this.lblConnName.Text = "Connection name testing new field";
             // 
             // txtConnName
             // 
@@ -235,7 +227,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.nmrPort)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
-
         }
 
         #endregion
