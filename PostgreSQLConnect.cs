@@ -214,7 +214,7 @@ namespace NppDB.PostgreSQL
                     conn.Open();
                     Nodes.Clear();
 
-                    Console.WriteLine("addschemas");
+                    Console.WriteLine(@"addschemas");
                     AddSchemas(conn);
                     
                 }

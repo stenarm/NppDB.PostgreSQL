@@ -79,11 +79,11 @@ namespace NppDB.PostgreSQL
             try
             {
                 connection.Open();
-                MessageBox.Show($"Connection successful", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($@"Connection successful", @"Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Unable to connect to server {ex.Message}", "Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show($@"Unable to connect to server {ex.Message}", @"Alert", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             finally 
             {
