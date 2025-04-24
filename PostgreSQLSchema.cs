@@ -45,9 +45,9 @@ namespace NppDB.PostgreSQL
             return menuList;
         }
 
-        private PostgreSQLConnect GetDBConnect()
+        private PostgreSqlConnect GetDBConnect()
         {
-            var connect = Parent as PostgreSQLConnect;
+            var connect = Parent as PostgreSqlConnect;
             return connect;
         }
     }

@@ -1,8 +1,6 @@
-﻿using Npgsql;
-using System;
-using System.Data.Common;
-using System.Security.Principal;
+﻿using System;
 using System.Windows.Forms;
+using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
@@ -15,63 +13,58 @@ namespace NppDB.PostgreSQL
 
         public bool VisiblePassword
         {
-            get { return this.cbxShowPwd.Checked; }
-            set { this.cbxShowPwd.Checked = value; }
-        }
-        public bool SaveConnectionDetails
-        {
-            get { return this.cbxSaveConnectionDetails.Checked; }
-            set { this.cbxSaveConnectionDetails.Checked = value; }
+            get { return cbxShowPwd.Checked; }
+            set { cbxShowPwd.Checked = value; }
         }
 
         public string Password
         {
-            get { return this.txtPassword.Text.Trim(); }
-            set { this.txtPassword.Text = value; }
+            get { return txtPassword.Text.Trim(); }
+            set { txtPassword.Text = value; }
         }
         public string Username
         {
-            get { return this.txtUsername.Text.Trim(); }
-            set { this.txtUsername.Text = value; }
+            get { return txtUsername.Text.Trim(); }
+            set { txtUsername.Text = value; }
         }
         public string Port
         {
-            get { return this.nmrPort.Value.ToString(); }
-            set { this.nmrPort.Value = decimal.Parse(value); }
+            get { return nmrPort.Value.ToString(); }
+            set { nmrPort.Value = decimal.Parse(value); }
         }
         public string Server
         {
-            get { return this.txtServer.Text.Trim(); }
-            set { this.txtServer.Text = value; }
+            get { return txtServer.Text.Trim(); }
+            set { txtServer.Text = value; }
         }
         public string Database
         {
-            get { return this.txtDatabase.Text.Trim(); }
-            set { this.txtDatabase.Text = value; }
+            get { return txtDatabase.Text.Trim(); }
+            set { txtDatabase.Text = value; }
         }
         public string ConnectionName
         {
-            get { return this.txtConnName.Text.Trim(); }
-            set { this.txtConnName.Text = value; }
+            get { return txtConnName.Text.Trim(); }
+            set { txtConnName.Text = value; }
         }
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            this.DialogResult = System.Windows.Forms.DialogResult.OK;
+            DialogResult = DialogResult.OK;
         }
         private void btnCancel_Click(object sender, EventArgs e)
         {
-            this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.Close();
+            DialogResult = DialogResult.Cancel;
+            Close();
         }
         private void btnTestConnection_Click(object sender, EventArgs e)
         {
-            NpgsqlConnection connection = new NpgsqlConnection();
+            var connection = new NpgsqlConnection();
             var builder = new NpgsqlConnectionStringBuilder
             {
                 Username = Username,
                 Host = Server,
-                Port = int.Parse(Port.ToString()),
+                Port = int.Parse(Port),
                 Database = Database,
                 Password = Password,
             };
@@ -79,7 +72,7 @@ namespace NppDB.PostgreSQL
             try
             {
                 connection.Open();
-                MessageBox.Show($@"Connection successful", @"Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(@"Connection successful", @"Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
@@ -100,7 +93,7 @@ namespace NppDB.PostgreSQL
 
         private void AdjustPasswordChar()
         {
-            this.txtPassword.PasswordChar = this.cbxShowPwd.Checked ? (char)0 : '*';
+            txtPassword.PasswordChar = cbxShowPwd.Checked ? (char)0 : '*';
         }
 
         private void frmPassword_Load(object sender, EventArgs e)
@@ -110,16 +103,16 @@ namespace NppDB.PostgreSQL
 
         public void SetConnNameVisible(bool visible)
         {
-            this.lblConnName.Visible = visible;
-            this.txtConnName.Visible = visible;
+            lblConnName.Visible = visible;
+            txtConnName.Visible = visible;
         }
 
         public void FocusPassword()
         {
-            this.txtPassword.TabIndex = 0;
-            this.btnOK.TabIndex = 1;
-            this.btnCancel.TabIndex = 2;
-            this.btnTestConnection.TabIndex = 3;
+            txtPassword.TabIndex = 0;
+            btnOK.TabIndex = 1;
+            btnCancel.TabIndex = 2;
+            btnTestConnection.TabIndex = 3;
         }
     }
 }

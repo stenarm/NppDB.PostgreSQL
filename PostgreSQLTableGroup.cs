@@ -26,7 +26,7 @@ namespace NppDB.PostgreSQL
 
         public void Refresh()
         {
-            var conn = (PostgreSQLConnect)Parent.Parent;
+            var conn = (PostgreSqlConnect)Parent.Parent;
             using (var cnn = conn.GetConnection())
             {
                 TreeView.Cursor = Cursors.WaitCursor;

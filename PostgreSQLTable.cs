@@ -286,7 +286,7 @@ namespace NppDB.PostgreSQL
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
                     var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\";";
                     host.Execute(NppDBCommandType.AppendToCurrentView, new object[] { query });
-                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSQLExecutor() });
+                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, connect.CreateSqlExecutor() });
                     host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
                 }));
             }
@@ -337,7 +337,7 @@ namespace NppDB.PostgreSQL
             return menuList;
         }
 
-        private string collectFunctionParams(PostgreSQLConnect connect)
+        private string collectFunctionParams(PostgreSqlConnect connect)
         {
             var paramsQuery = "()";
             using (var cnn = connect.GetConnection())
@@ -381,9 +381,9 @@ namespace NppDB.PostgreSQL
             return paramsQuery;
         }
 
-        private PostgreSQLConnect GetDBConnect()
+        private PostgreSqlConnect GetDBConnect()
         {
-            var connect = Parent.Parent.Parent as PostgreSQLConnect;
+            var connect = Parent.Parent.Parent as PostgreSqlConnect;
             return connect;
         }
 

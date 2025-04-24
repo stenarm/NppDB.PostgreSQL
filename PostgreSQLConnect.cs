@@ -6,12 +6,13 @@ using System.Windows.Forms;
 using System.Xml.Serialization;
 using Npgsql;
 using NppDB.Comm;
+using NppDB.PostgreSQL.Properties;
 
 namespace NppDB.PostgreSQL
 {
     [XmlRoot]
     [ConnectAttr(Id = "PostgreSQLConnect", Title = "PostgreSQL")]
-    public class PostgreSQLConnect : TreeNode, IDBConnect, IRefreshable, IMenuProvider, IIconProvider, INppDBCommandClient
+    public class PostgreSqlConnect : TreeNode, IDbConnect, IRefreshable, IMenuProvider, IIconProvider, INppDBCommandClient
     {
         [XmlElement]
         public string Title { set => Text = value; get => Text; }
@@ -21,20 +22,22 @@ namespace NppDB.PostgreSQL
         public string Port { set; get; }
         public string Database { set; get; }
         public string ConnectionName { set; get; }
-        public bool SaveConnectionDetails { set; get; }
         [XmlIgnore]
         public string Password { set; get; }
         private NpgsqlConnection _connection;
         private List<PostgreSQLExecutor> Executors { set; get; }
+        private string _serverVersion;
 
-        public PostgreSQLConnect()
+        public PostgreSqlConnect()
         {
-            // Npgsql is currently unable to rewrite SQLs which have semicolons inside the query, so this needs to be disabled
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
             Executors = new List<PostgreSQLExecutor>();
         }
 
         public bool IsOpened => _connection != null && _connection.State == ConnectionState.Open;
+
+        public string DatabaseSystemName =>
+            !string.IsNullOrEmpty(_serverVersion) ? $"PostgreSQL {_serverVersion}" : "PostgreSQL";
 
         internal INppDBCommandHost CommandHost { get; private set; }
 
@@ -51,19 +54,19 @@ namespace NppDB.PostgreSQL
                 CommandHost.Execute(NppDBCommandType.NewFile, null);
             }
             id = CommandHost.Execute(NppDBCommandType.GetActivatedBufferID, null);
-            CommandHost.Execute(NppDBCommandType.CreateResultView, new[] { id, this, CreateSQLExecutor() });
+            CommandHost.Execute(NppDBCommandType.CreateResultView, new[] { id, this, CreateSqlExecutor() });
         }
 
-        public ISQLExecutor CreateSQLExecutor()
+        public ISQLExecutor CreateSqlExecutor()
         {
-            PostgreSQLExecutor executor = new PostgreSQLExecutor(GetConnection);
+            var executor = new PostgreSQLExecutor(GetConnection);
             Executors.Add(executor);
             return executor;
         }
 
         internal NpgsqlConnection GetConnection()
         {
-            NpgsqlConnectionStringBuilder builder = GetConnectionStringBuilder();
+            var builder = GetConnectionStringBuilder();
             builder["Pwd"] = Password;
             return new NpgsqlConnection(builder.ConnectionString);
         }
@@ -71,26 +74,34 @@ namespace NppDB.PostgreSQL
         public bool CheckLogin()
         {
             var dlg = new frmPostgreSQLConnect { VisiblePassword = false };
-            if (!String.IsNullOrEmpty(Account) || !String.IsNullOrEmpty(Port) || 
-                !String.IsNullOrEmpty(ServerAddress) || !String.IsNullOrEmpty(Database) || !String.IsNullOrEmpty(Database)) 
+            if (!string.IsNullOrEmpty(Account) || !string.IsNullOrEmpty(Port) ||
+                !string.IsNullOrEmpty(ServerAddress) || !string.IsNullOrEmpty(Database))
             {
                 dlg.Username = Account;
                 dlg.Port = Port;
                 dlg.Server = ServerAddress;
                 dlg.Database = Database;
                 dlg.ConnectionName = ConnectionName;
-                dlg.SetConnNameVisible(false);
+                dlg.SetConnNameVisible(string.IsNullOrEmpty(ConnectionName));
                 dlg.FocusPassword();
             }
-            if (dlg.ShowDialog() != DialogResult.OK) return false;
-            SaveConnectionDetails = dlg.SaveConnectionDetails;
+            else
+            {
+                dlg.SetConnNameVisible(true);
+            }
+
+            var dialogResult = dlg.ShowDialog();
+
+            if (dialogResult != DialogResult.OK) return false;
             Password = dlg.Password;
             Account = dlg.Username;
             Port = dlg.Port;
             ServerAddress = dlg.Server;
             Database = dlg.Database;
             ConnectionName = dlg.ConnectionName;
+
             return true;
+
         }
 
         public void Connect()
@@ -98,20 +109,66 @@ namespace NppDB.PostgreSQL
             if (_connection == null) _connection = new NpgsqlConnection();
 
             var curConnStrBuilder = GetConnectionStringBuilder();
-            if (String.IsNullOrEmpty(_connection.ConnectionString) ||
-                _connection.ConnectionString.Remove(_connection.ConnectionString.Length - 1, 1) != curConnStrBuilder.ConnectionString)
+
+            var needsConnectionStringUpdate = string.IsNullOrEmpty(_connection.ConnectionString);
+            if (!needsConnectionStringUpdate)
+            {
+                try {
+                    var existingBuilder = new NpgsqlConnectionStringBuilder(_connection.ConnectionString);
+                    needsConnectionStringUpdate = existingBuilder.Host != curConnStrBuilder.Host ||
+                                                existingBuilder.Port != curConnStrBuilder.Port ||
+                                                existingBuilder.Database != curConnStrBuilder.Database ||
+                                                existingBuilder.Username != curConnStrBuilder.Username;
+                } catch {
+                    needsConnectionStringUpdate = true;
+                }
+            }
+
+            if (needsConnectionStringUpdate)
             {
                 curConnStrBuilder["Password"] = Password;
                 _connection.ConnectionString = curConnStrBuilder.ConnectionString;
+                _serverVersion = null;
             }
-            if (_connection.State == ConnectionState.Open) return;
+
+            if (_connection.State == ConnectionState.Open)
+            {
+                if (_serverVersion == null) FetchServerVersionInternal();
+                 return;
+            }
+
             try
             {
                 _connection.Open();
+                FetchServerVersionInternal();
             }
             catch (Exception ex)
             {
+                _serverVersion = null;
                 throw new ApplicationException("connect fail", ex);
+            }
+        }
+
+        private void FetchServerVersionInternal()
+        {
+            if (_connection == null || _connection.State != ConnectionState.Open)
+            {
+                _serverVersion = null;
+                return;
+            }
+            try
+            {
+                using (var cmd = new NpgsqlCommand("SHOW server_version;", _connection))
+                {
+                    var versionResult = cmd.ExecuteScalar();
+                    _serverVersion = versionResult?.ToString();
+                    Console.WriteLine($"Fetched PostgreSQL Version: {_serverVersion}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error fetching PostgreSQL version: {ex.Message}");
+                 _serverVersion = null;
             }
         }
 
@@ -121,7 +178,7 @@ namespace NppDB.PostgreSQL
             {
                 Username = Account,
                 Host = ServerAddress,
-                Port = int.Parse(Port.ToString()),
+                Port = int.Parse(Port),
                 Database = Database,
                 IncludeErrorDetail = true,
             };
@@ -131,7 +188,12 @@ namespace NppDB.PostgreSQL
         public string ConnectAndAttach()
         {
             if (IsOpened) return "CONTINUE";
-            if (!CheckLogin()) return "FAIL";
+
+            if (!CheckLogin())
+            {
+                return "FAIL";
+            }
+
             try
             {
                 Connect();
@@ -148,12 +210,13 @@ namespace NppDB.PostgreSQL
 
         public void Disconnect()
         {
-            foreach (PostgreSQLExecutor executor in Executors)
+            foreach (var executor in Executors)
             {
                 executor.Stop();
             }
             Executors.Clear();
             NpgsqlConnection.ClearAllPools();
+            _serverVersion = null;
             if (_connection == null || _connection.State == ConnectionState.Closed) return;
 
             _connection.Close();
@@ -166,7 +229,7 @@ namespace NppDB.PostgreSQL
 
         public Bitmap GetIcon()
         {
-            return Properties.Resources.PostgreSQL;
+            return Resources.PostgreSQL;
         }
 
         public ContextMenuStrip GetMenu()
@@ -180,14 +243,14 @@ namespace NppDB.PostgreSQL
                 {
                     host.Execute(NppDBCommandType.NewFile, null);
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSQLExecutor() });
+                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSqlExecutor() });
                 }));
                 if (host.Execute(NppDBCommandType.GetAttachedBufferID, null) == null)
                 {
                     menuList.Items.Add(new ToolStripButton("Attach", null, (s, e) =>
                     {
                         var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                        host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSQLExecutor() });
+                        host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSqlExecutor() });
                     }));
                 }
                 else
@@ -205,6 +268,11 @@ namespace NppDB.PostgreSQL
 
         public void Refresh()
         {
+            if (IsOpened && _serverVersion == null)
+            {
+                FetchServerVersionInternal();
+            }
+
             using (var conn = GetConnection())
             {
                 TreeView.Cursor = Cursors.WaitCursor;
@@ -213,10 +281,8 @@ namespace NppDB.PostgreSQL
                 {
                     conn.Open();
                     Nodes.Clear();
-
                     Console.WriteLine(@"addschemas");
                     AddSchemas(conn);
-                    
                 }
                 catch (Exception ex)
                 {
@@ -232,17 +298,17 @@ namespace NppDB.PostgreSQL
             }
         }
 
-        internal List<String> GetForeignSchemas(NpgsqlConnection conn)
+        internal List<string> GetForeignSchemas(NpgsqlConnection conn)
         {
-            List<String> result = new List<String>();
-            string query = "SELECT DISTINCT foreign_table_schema FROM information_schema.foreign_tables;";
-            using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
+            var result = new List<string>();
+            const string query = "SELECT DISTINCT foreign_table_schema FROM information_schema.foreign_tables;";
+            using (var command = new NpgsqlCommand(query, conn))
             {
-                using (NpgsqlDataReader reader = command.ExecuteReader())
+                using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        string schemaName = reader["foreign_table_schema"].ToString();
+                        var schemaName = reader["foreign_table_schema"].ToString();
                         result.Add(schemaName);
                     }
                 }
@@ -252,15 +318,15 @@ namespace NppDB.PostgreSQL
 
         internal void AddSchemas(NpgsqlConnection conn) 
         {
-            string query = "SELECT nspname FROM pg_namespace order by nspname;";
-            List<string> foreignSchemas = GetForeignSchemas(conn);
-            using (NpgsqlCommand command = new NpgsqlCommand(query, conn))
+            const string query = "SELECT nspname FROM pg_namespace order by nspname;";
+            var foreignSchemas = GetForeignSchemas(conn);
+            using (var command = new NpgsqlCommand(query, conn))
             {
-                using (NpgsqlDataReader reader = command.ExecuteReader())
+                using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        string schemaName = reader["nspname"].ToString();
+                        var schemaName = reader["nspname"].ToString();
                         var db = new PostgreSQLSchema { Text = schemaName, Schema = schemaName, Foreign = foreignSchemas.Contains(schemaName) };
                         Nodes.Add(db);
                     }
@@ -270,10 +336,7 @@ namespace NppDB.PostgreSQL
 
         public void Reset()
         {
-            if (!SaveConnectionDetails) 
-            {
-                Database = ""; ServerAddress = ""; Account = "";; Port = "";
-            }
+            Database = ""; ServerAddress = ""; Account = ""; Port = "";
             Password = "";
             Disconnect();
             _connection = null;

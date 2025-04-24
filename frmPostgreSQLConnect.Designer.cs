@@ -40,7 +40,6 @@
             this.label1 = new System.Windows.Forms.Label();
             this.txtDatabase = new System.Windows.Forms.TextBox();
             this.cbxShowPwd = new System.Windows.Forms.CheckBox();
-            this.cbxSaveConnectionDetails = new System.Windows.Forms.CheckBox();
             this.nmrPort = new System.Windows.Forms.NumericUpDown();
             this.lblConnName = new System.Windows.Forms.Label();
             this.txtConnName = new System.Windows.Forms.TextBox();
@@ -107,7 +106,7 @@
             // 
             // btnOK
             // 
-            this.btnOK.Location = new System.Drawing.Point(279, 303);
+            this.btnOK.Location = new System.Drawing.Point(280, 287);
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(75, 23);
             this.btnOK.TabIndex = 16;
@@ -117,7 +116,7 @@
             // 
             // btnCancel
             // 
-            this.btnCancel.Location = new System.Drawing.Point(430, 303);
+            this.btnCancel.Location = new System.Drawing.Point(431, 287);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 17;
@@ -152,17 +151,6 @@
             this.cbxShowPwd.UseVisualStyleBackColor = true;
             this.cbxShowPwd.CheckedChanged += new System.EventHandler(this.cbxShowPwd_CheckedChanged);
             // 
-            // cbxSaveConnectionDetails
-            // 
-            this.cbxSaveConnectionDetails.AutoSize = true;
-            this.cbxSaveConnectionDetails.Location = new System.Drawing.Point(279, 280);
-            this.cbxSaveConnectionDetails.Name = "cbxSaveConnectionDetails";
-            this.cbxSaveConnectionDetails.Size = new System.Drawing.Size(140, 17);
-            this.cbxSaveConnectionDetails.TabIndex = 998;
-            this.cbxSaveConnectionDetails.Text = "Save connection details";
-            this.cbxSaveConnectionDetails.UseVisualStyleBackColor = true;
-            this.cbxSaveConnectionDetails.Visible = false;
-            // 
             // nmrPort
             // 
             this.nmrPort.Location = new System.Drawing.Point(280, 120);
@@ -177,9 +165,9 @@
             this.lblConnName.AutoSize = true;
             this.lblConnName.Location = new System.Drawing.Point(184, 39);
             this.lblConnName.Name = "lblConnName";
-            this.lblConnName.Size = new System.Drawing.Size(169, 13);
+            this.lblConnName.Size = new System.Drawing.Size(90, 13);
             this.lblConnName.TabIndex = 993;
-            this.lblConnName.Text = "Connection name testing new field";
+            this.lblConnName.Text = "Connection name";
             // 
             // txtConnName
             // 
@@ -190,7 +178,7 @@
             // 
             // btnTestConnection
             // 
-            this.btnTestConnection.Location = new System.Drawing.Point(280, 343);
+            this.btnTestConnection.Location = new System.Drawing.Point(281, 327);
             this.btnTestConnection.Name = "btnTestConnection";
             this.btnTestConnection.Size = new System.Drawing.Size(225, 23);
             this.btnTestConnection.TabIndex = 18;
@@ -208,7 +196,6 @@
             this.Controls.Add(this.lblConnName);
             this.Controls.Add(this.txtConnName);
             this.Controls.Add(this.nmrPort);
-            this.Controls.Add(this.cbxSaveConnectionDetails);
             this.Controls.Add(this.cbxShowPwd);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtDatabase);
@@ -243,7 +230,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox txtDatabase;
         private System.Windows.Forms.CheckBox cbxShowPwd;
-        private System.Windows.Forms.CheckBox cbxSaveConnectionDetails;
         private System.Windows.Forms.NumericUpDown nmrPort;
         private System.Windows.Forms.Label lblConnName;
         private System.Windows.Forms.TextBox txtConnName;
