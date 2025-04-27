@@ -51,7 +51,7 @@ namespace NppDB.PostgreSQL
         }
     }
 
-    public class PostgreSQLExecutor : ISQLExecutor
+    public class PostgreSQLExecutor : ISqlExecutor
     {
         private Thread _execTh;
         private readonly Func<NpgsqlConnection> _connector;

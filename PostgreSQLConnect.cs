@@ -39,9 +39,9 @@ namespace NppDB.PostgreSQL
         public string DatabaseSystemName =>
             !string.IsNullOrEmpty(_serverVersion) ? $"PostgreSQL {_serverVersion}" : "PostgreSQL";
 
-        internal INppDBCommandHost CommandHost { get; private set; }
+        internal INppDbCommandHost CommandHost { get; private set; }
 
-        public void SetCommandHost(INppDBCommandHost host)
+        public void SetCommandHost(INppDbCommandHost host)
         {
             CommandHost = host;
         }
@@ -57,7 +57,7 @@ namespace NppDB.PostgreSQL
             CommandHost.Execute(NppDBCommandType.CreateResultView, new[] { id, this, CreateSqlExecutor() });
         }
 
-        public ISQLExecutor CreateSqlExecutor()
+        public ISqlExecutor CreateSqlExecutor()
         {
             var executor = new PostgreSQLExecutor(GetConnection);
             Executors.Add(executor);
@@ -239,7 +239,7 @@ namespace NppDB.PostgreSQL
             var host = CommandHost;
             if (host != null)
             {
-                menuList.Items.Add(new ToolStripButton("Open", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton("Open a new query window", null, (s, e) =>
                 {
                     host.Execute(NppDBCommandType.NewFile, null);
                     var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
@@ -247,7 +247,7 @@ namespace NppDB.PostgreSQL
                 }));
                 if (host.Execute(NppDBCommandType.GetAttachedBufferID, null) == null)
                 {
-                    menuList.Items.Add(new ToolStripButton("Attach", null, (s, e) =>
+                    menuList.Items.Add(new ToolStripButton("Attach to the open query window", null, (s, e) =>
                     {
                         var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
                         host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSqlExecutor() });
@@ -255,14 +255,14 @@ namespace NppDB.PostgreSQL
                 }
                 else
                 {
-                    menuList.Items.Add(new ToolStripButton("Detach", null, (s, e) =>
+                    menuList.Items.Add(new ToolStripButton("Detach from the query window", null, (s, e) =>
                     {
                         host.Execute(NppDBCommandType.DestroyResultView, null);
                     }));
                 }
                 menuList.Items.Add(new ToolStripSeparator());
             }
-            menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
+            menuList.Items.Add(new ToolStripButton("Refresh the database connection", null, (s, e) => { Refresh(); }));
             return menuList;
         }
 
