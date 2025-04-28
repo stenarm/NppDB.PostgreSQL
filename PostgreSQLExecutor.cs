@@ -7,14 +7,7 @@ using Antlr4.Runtime;
 using System.IO;
 using System.Data;
 using Npgsql;
-using System.Windows.Forms;
-using NpgsqlTypes;
-using Npgsql.PostgresTypes;
-using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
-using static System.Net.Mime.MediaTypeNames;
 using System.Text.RegularExpressions;
-using System.Globalization;
-using TimeZoneConverter;
 
 namespace NppDB.PostgreSQL
 {

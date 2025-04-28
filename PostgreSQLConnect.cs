@@ -48,13 +48,13 @@ namespace NppDB.PostgreSQL
 
         public void Attach()
         {
-            var id = CommandHost.Execute(NppDBCommandType.GetAttachedBufferID, null);
+            var id = CommandHost.Execute(NppDbCommandType.GetAttachedBufferID, null);
             if (id != null)
             {
-                CommandHost.Execute(NppDBCommandType.NewFile, null);
+                CommandHost.Execute(NppDbCommandType.NewFile, null);
             }
-            id = CommandHost.Execute(NppDBCommandType.GetActivatedBufferID, null);
-            CommandHost.Execute(NppDBCommandType.CreateResultView, new[] { id, this, CreateSqlExecutor() });
+            id = CommandHost.Execute(NppDbCommandType.GetActivatedBufferID, null);
+            CommandHost.Execute(NppDbCommandType.CreateResultView, new[] { id, this, CreateSqlExecutor() });
         }
 
         public ISqlExecutor CreateSqlExecutor()
@@ -162,12 +162,12 @@ namespace NppDB.PostgreSQL
                 {
                     var versionResult = cmd.ExecuteScalar();
                     _serverVersion = versionResult?.ToString();
-                    Console.WriteLine($"Fetched PostgreSQL Version: {_serverVersion}");
+                    Console.WriteLine($@"Fetched PostgreSQL Version: {_serverVersion}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error fetching PostgreSQL version: {ex.Message}");
+                Console.WriteLine($@"Error fetching PostgreSQL version: {ex.Message}");
                  _serverVersion = null;
             }
         }
@@ -241,28 +241,40 @@ namespace NppDB.PostgreSQL
             {
                 menuList.Items.Add(new ToolStripButton("Open a new query window", null, (s, e) =>
                 {
-                    host.Execute(NppDBCommandType.NewFile, null);
-                    var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                    host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSqlExecutor() });
+                    try
+                    {
+                        host.Execute(NppDbCommandType.NewFile, null);
+                        var idObj = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                        if (idObj == null) return;
+                        var bufferId = (IntPtr)idObj;
+                        host.Execute(NppDbCommandType.CreateResultView, new object[] { bufferId, connect, CreateSqlExecutor() });
+                    }
+                    catch (Exception ex) { Console.WriteLine($@"Error in 'Open new query': {ex.Message}"); }
                 }));
-                if (host.Execute(NppDBCommandType.GetAttachedBufferID, null) == null)
+
+                if (host.Execute(NppDbCommandType.GetAttachedBufferID, null) == null)
                 {
                     menuList.Items.Add(new ToolStripButton("Attach to the open query window", null, (s, e) =>
                     {
-                        var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-                        host.Execute(NppDBCommandType.CreateResultView, new[] { id, connect, CreateSqlExecutor() });
+                        try
+                        {
+                            var idObj = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                            if (idObj == null) { Console.WriteLine(@"Attach failed: Could not get Activated Buffer ID."); return; }
+                            var bufferId = (IntPtr)idObj;
+
+                            host.Execute(NppDbCommandType.CreateResultView, new object[] { bufferId, connect, CreateSqlExecutor() });
+                        }
+                        catch (Exception attachEx) { Console.WriteLine($@"Error during Attach: {attachEx.Message}"); }
                     }));
                 }
                 else
                 {
-                    menuList.Items.Add(new ToolStripButton("Detach from the query window", null, (s, e) =>
-                    {
-                        host.Execute(NppDBCommandType.DestroyResultView, null);
-                    }));
+                     menuList.Items.Add(new ToolStripButton("Detach from the query window", null, (s, e) => { try { host.Execute(NppDbCommandType.DestroyResultView, null); } catch (Exception ex) { Console.WriteLine($@"Error during Detach: {ex.Message}"); } }));
                 }
                 menuList.Items.Add(new ToolStripSeparator());
             }
-            menuList.Items.Add(new ToolStripButton("Refresh the database connection", null, (s, e) => { Refresh(); }));
+
+            menuList.Items.Add(new ToolStripButton("Refresh the database connection", null, (s, e) => { try { Refresh(); } catch (Exception ex) { Console.WriteLine($@"Error during Refresh: {ex.Message}"); } }));
             return menuList;
         }
 

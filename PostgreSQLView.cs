@@ -1,6 +1,6 @@
 ﻿namespace NppDB.PostgreSQL
 {
-    internal class PostgreSQLView: PostgreSQLTable
+    internal class PostgreSQLView: PostgreSqlTable
     {
         public PostgreSQLView()
         {

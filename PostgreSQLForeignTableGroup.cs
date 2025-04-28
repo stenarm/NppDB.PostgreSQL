@@ -18,7 +18,7 @@ namespace NppDB.PostgreSQL
 
         protected virtual TreeNode CreateTreeNode(NpgsqlDataReader reader)
         {
-            return new PostgreSQLTable
+            return new PostgreSqlTable
             {
                 Text = reader["table_name"].ToString(),
                 TypeName = "FOREIGN_TABLE"
@@ -49,7 +49,7 @@ namespace NppDB.PostgreSQL
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Exception");
+                    MessageBox.Show(ex.Message, @"Exception");
                 }
                 finally
                 {

@@ -32,7 +32,7 @@ namespace NppDB.PostgreSQL
             return new PostgreSQLView
             {
                 Text = reader["function_name"].ToString(),
-                FuncOID = reader["function_oid"].ToString(),
+                FuncOid = reader["function_oid"].ToString(),
                 TypeName = "FUNCTION"
             };
         }

@@ -2,15 +2,11 @@
 using Antlr4.Runtime.Tree;
 using NppDB.Comm;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using static Npgsql.Replication.PgOutput.Messages.RelationMessage;
 using static NppDB.PostgreSQL.PostgreSQLAnalyzerHelper;
 using static PostgreSQLParser;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace NppDB.PostgreSQL
 {
