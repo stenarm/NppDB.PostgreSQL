@@ -1,7 +1,7 @@
-﻿using NppDB.Comm;
-using System;
+﻿using System;
 using System.Windows.Forms;
 using Npgsql;
+using NppDB.Comm;
 
 namespace NppDB.PostgreSQL
 {
@@ -22,16 +22,15 @@ namespace NppDB.PostgreSQL
             {
                 Text = reader["table_name"].ToString()
             };
-
-            tableNode.Nodes.Add(new TreeNode(""));
-
             return tableNode;
         }
 
         public void Refresh()
         {
-            var conn = (PostgreSqlConnect)Parent.Parent;
-            using (var cnn = conn.GetConnection())
+            if (!(Parent is PostgreSqlSchema schemaNode)) return;
+            if (!(schemaNode.Parent is PostgreSqlConnect connNode)) return;
+
+            using (var cnn = connNode.GetConnection())
             {
                 TreeView.Cursor = Cursors.WaitCursor;
                 TreeView.Enabled = false;
@@ -39,13 +38,22 @@ namespace NppDB.PostgreSQL
                 {
                     cnn.Open();
                     Nodes.Clear();
-                    using (var command = new NpgsqlCommand(string.Format(Query, Parent.Text), cnn))
+                    var formattedQuery = string.Format(Query, schemaNode.Text);
+                    using (var command = new NpgsqlCommand(formattedQuery, cnn))
                     {
                         using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
-                                Nodes.Add(CreateTreeNode(reader));
+                                var childNode = CreateTreeNode(reader);
+                                var childName = reader["table_name"].ToString();
+
+                                if (NodeHasChildrenCheck(cnn, schemaNode.Text, childName))
+                                {
+                                    childNode.Nodes.Add(new TreeNode(""));
+                                }
+
+                                Nodes.Add(childNode);
                             }
                         }
                     }
@@ -56,19 +64,37 @@ namespace NppDB.PostgreSQL
                 }
                 finally
                 {
-                    cnn.Close();
                     TreeView.Enabled = true;
                     TreeView.Cursor = null;
                 }
             }
         }
 
+        protected virtual bool NodeHasChildrenCheck(NpgsqlConnection conn, string schemaName, string tableOrViewName)
+        {
+            const string query = "SELECT 1 FROM information_schema.columns WHERE table_schema = @schema AND table_name = @table LIMIT 1";
+            try
+            {
+                using (var cmd = new NpgsqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@schema", schemaName);
+                    cmd.Parameters.AddWithValue("@table", tableOrViewName);
+                    var result = cmd.ExecuteScalar();
+                    return (result != null && result != DBNull.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error checking columns for {schemaName}.{tableOrViewName}: {ex.Message}");
+                return true;
+            }
+        }
+
         public ContextMenuStrip GetMenu()
         {
             var menuList = new ContextMenuStrip { ShowImageMargin = false };
-            menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
-
-            return menuList;
+             menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
+             return menuList;
         }
     }
 }

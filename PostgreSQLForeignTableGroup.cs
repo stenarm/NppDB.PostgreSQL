@@ -1,71 +1,25 @@
-﻿using NppDB.Comm;
-using System;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
-    public class PostgreSQLForeignTableGroup : TreeNode, IRefreshable, IMenuProvider
+    public class PostgreSqlForeignTableGroup : PostgreSqlTableGroup
     {
-        public PostgreSQLForeignTableGroup()
+        public PostgreSqlForeignTableGroup()
         {
-            Query = "SELECT table_name FROM information_schema.tables WHERE table_schema='{0}' AND table_type in ('FOREIGN') ORDER BY table_name";
+            Query = "SELECT table_name FROM information_schema.tables WHERE table_schema='{0}' AND table_type = 'FOREIGN TABLE' ORDER BY table_name";
             Text = "Foreign Tables";
             SelectedImageKey = ImageKey = "Group";
         }
 
-        protected string Query { get; set; }
-
-        protected virtual TreeNode CreateTreeNode(NpgsqlDataReader reader)
+        protected override TreeNode CreateTreeNode(NpgsqlDataReader reader)
         {
-            return new PostgreSqlTable
+            var tableNode = new PostgreSqlTable
             {
                 Text = reader["table_name"].ToString(),
-                TypeName = "FOREIGN_TABLE"
+                TypeName = "FOREIGN TABLE"
             };
-        }
-
-        public void Refresh()
-        {
-            var conn = (PostgreSqlConnect)Parent.Parent;
-            using (var cnn = conn.GetConnection())
-            {
-                TreeView.Cursor = Cursors.WaitCursor;
-                TreeView.Enabled = false;
-                try
-                {
-                    cnn.Open();
-                    Nodes.Clear();
-                    using (NpgsqlCommand command = new NpgsqlCommand(String.Format(Query, Parent.Text), cnn))
-                    {
-                        using (NpgsqlDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                Nodes.Add(CreateTreeNode(reader));
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, @"Exception");
-                }
-                finally
-                {
-                    cnn.Close();
-                    TreeView.Enabled = true;
-                    TreeView.Cursor = null;
-                }
-            }
-        }
-
-        public ContextMenuStrip GetMenu()
-        {
-            var menuList = new ContextMenuStrip { ShowImageMargin = false };
-            menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
-
-            return menuList;
+            return tableNode;
         }
     }
 }

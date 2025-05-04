@@ -1,5 +1,5 @@
-using Antlr4.Runtime;
 using System.IO;
+using Antlr4.Runtime;
 
 class LexerDispatchingErrorListener : IAntlrErrorListener<int>
 {

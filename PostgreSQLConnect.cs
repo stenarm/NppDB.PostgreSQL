@@ -328,10 +328,11 @@ namespace NppDB.PostgreSQL
             return result;
         }
 
-        internal void AddSchemas(NpgsqlConnection conn) 
+        internal void AddSchemas(NpgsqlConnection conn)
         {
-            const string query = "SELECT nspname FROM pg_namespace order by nspname;";
+            const string query = "SELECT nspname FROM pg_namespace ORDER BY nspname;";
             var foreignSchemas = GetForeignSchemas(conn);
+
             using (var command = new NpgsqlCommand(query, conn))
             {
                 using (var reader = command.ExecuteReader())
@@ -339,8 +340,17 @@ namespace NppDB.PostgreSQL
                     while (reader.Read())
                     {
                         var schemaName = reader["nspname"].ToString();
-                        var db = new PostgreSqlSchema { Text = schemaName, Schema = schemaName, Foreign = foreignSchemas.Contains(schemaName) };
-                        Nodes.Add(db);
+
+                        var dbSchemaNode = new PostgreSqlSchema
+                        {
+                            Text = schemaName,
+                            Schema = schemaName,
+                            Foreign = foreignSchemas.Contains(schemaName)
+                        };
+
+                        dbSchemaNode.Nodes.Add(new TreeNode(""));
+
+                        Nodes.Add(dbSchemaNode);
                     }
                 }
             }

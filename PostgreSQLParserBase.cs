@@ -1,8 +1,8 @@
-using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
 
 public abstract class PostgreSQLParserBase : Parser
 {
@@ -92,7 +92,7 @@ public abstract class PostgreSQLParserBase : Parser
         var parser = new PostgreSQLParser(tokens);
         lexer.RemoveErrorListeners();
         parser.RemoveErrorListeners();
-        var listener_lexer = new LexerDispatchingErrorListener((this.InputStream as CommonTokenStream).TokenSource as Lexer);
+        var listener_lexer = new LexerDispatchingErrorListener((InputStream as CommonTokenStream).TokenSource as Lexer);
         var listener_parser = new ParserDispatchingErrorListener(this);
         lexer.AddErrorListener(listener_lexer);
         parser.AddErrorListener(listener_parser);

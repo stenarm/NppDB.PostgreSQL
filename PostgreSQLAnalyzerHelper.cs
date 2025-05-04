@@ -1,10 +1,11 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-using NppDB.Comm;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
+using NppDB.Comm;
 using static PostgreSQLParser;
 
 namespace NppDB.PostgreSQL
@@ -17,13 +18,13 @@ namespace NppDB.PostgreSQL
             return set.Contains(x);
         }
 
-        public static void _AnalyzeForDoubleQuotes(PostgreSQLParser.IdentifierContext context, ParsedTreeCommand command)
+        public static void _AnalyzeForDoubleQuotes(IdentifierContext context, ParsedTreeCommand command)
         {
             if (_AnalyzeForDoubleQuotes(context)) 
             {
-                if (context.Parent != null && context.Parent is PostgreSQLParser.CollabelContext collabel)
+                if (context.Parent != null && context.Parent is CollabelContext collabel)
                 {
-                    if (collabel != null && collabel.Parent is PostgreSQLParser.Target_labelContext targetLbl)
+                    if (collabel != null && collabel.Parent is Target_labelContext targetLbl)
                     {
                         if (targetLbl.AS() == null)
                         {
@@ -31,7 +32,7 @@ namespace NppDB.PostgreSQL
                         }
                     }
                 }
-                else if (context.Parent != null && context.Parent is PostgreSQLParser.Target_labelContext targetLb)
+                else if (context.Parent != null && context.Parent is Target_labelContext targetLb)
                 {
                     if (targetLb.AS() == null)
                     {
@@ -45,7 +46,7 @@ namespace NppDB.PostgreSQL
             }
         }
 
-        public static bool _AnalyzeForDoubleQuotes(PostgreSQLParser.IdentifierContext context)
+        public static bool _AnalyzeForDoubleQuotes(IdentifierContext context)
         {
             if (context.GetText()[0] == '"' && context.GetText()[context.GetText().Length - 1] == '"')
             {
@@ -54,7 +55,7 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        private static int CountTables(IList<PostgreSQLParser.Table_refContext> ctxs, int count)
+        private static int CountTables(IList<Table_refContext> ctxs, int count)
         {
             if (ctxs != null && ctxs.Count > 0)
             {
@@ -70,7 +71,7 @@ namespace NppDB.PostgreSQL
             return count;
         }
 
-        public static bool IsHavingClauseUsingGroupByTerm(PostgreSQLParser.Having_clauseContext ctx)
+        public static bool IsHavingClauseUsingGroupByTerm(Having_clauseContext ctx)
         {
             if (ctx.Parent != null && ctx.Parent is Simple_select_pramaryContext pramaryContext)
             {
@@ -158,7 +159,7 @@ namespace NppDB.PostgreSQL
 
         public static bool HasSpecificAggregateFunctionAndArgument(IParseTree context, string argument, params string[] functionNames)
         {
-            if (context is PostgreSQLParser.Func_applicationContext ctx &&
+            if (context is Func_applicationContext ctx &&
                 ctx.func_name().GetText().ToLower().In(functionNames) &&
                 (ctx.func_arg_list()?.GetText().ToLower() == argument ||
                 ctx.func_arg_expr()?.GetText().ToLower() == argument ||
@@ -170,7 +171,7 @@ namespace NppDB.PostgreSQL
             for (var n = 0; n < context.ChildCount; ++n)
             {
                 var child = context.GetChild(n);
-                if (!(child is PostgreSQLParser.Simple_select_pramaryContext))
+                if (!(child is Simple_select_pramaryContext))
                 {
                     var result = HasSpecificAggregateFunctionAndArgument(child, argument, functionNames);
                     if (result) return true;
@@ -181,11 +182,11 @@ namespace NppDB.PostgreSQL
 
         public static bool HasSpecificAggregateFunction(IParseTree context, params string[] functionNames)
         {
-            if (context is PostgreSQLParser.Select_no_parensContext)
+            if (context is Select_no_parensContext)
             {
                 return false;
             }
-            if (context is PostgreSQLParser.Func_applicationContext ctx &&
+            if (context is Func_applicationContext ctx &&
                 ctx.func_name().GetText().ToLower().In(functionNames))
             {
                 return true;
@@ -194,7 +195,7 @@ namespace NppDB.PostgreSQL
             for (var n = 0; n < context.ChildCount; ++n)
             {
                 var child = context.GetChild(n);
-                if (!(child is PostgreSQLParser.Simple_select_pramaryContext))
+                if (!(child is Simple_select_pramaryContext))
                 {
                     var result = HasSpecificAggregateFunction(child, functionNames);
                     if (result) return true;
@@ -205,7 +206,7 @@ namespace NppDB.PostgreSQL
 
         public static bool HasAndOrExprWithoutParens(IParseTree context)
         {
-            A_expr_orContext a_ExprOR = (A_expr_orContext)FindFirstTargetType(context, typeof(PostgreSQLParser.A_expr_orContext));
+            A_expr_orContext a_ExprOR = (A_expr_orContext)FindFirstTargetType(context, typeof(A_expr_orContext));
 
             while (a_ExprOR != null)
             {
@@ -220,7 +221,7 @@ namespace NppDB.PostgreSQL
                 {
                     return true;
                 }
-                a_ExprOR = (A_expr_orContext)FindFirstTargetType(a_ExprOR, typeof(PostgreSQLParser.A_expr_orContext));
+                a_ExprOR = (A_expr_orContext)FindFirstTargetType(a_ExprOR, typeof(A_expr_orContext));
             }
             return false;
         }
@@ -259,7 +260,7 @@ namespace NppDB.PostgreSQL
                     {
                         foreach (var item in expr)
                         {
-                            if (item is Antlr4.Runtime.Tree.IParseTree tree && HasText(tree))
+                            if (item is IParseTree tree && HasText(tree))
                             {
                                 C_expr_exprContext value = (C_expr_exprContext)FindFirstTargetType(tree, typeof(C_expr_exprContext));
                                 if (value != null && value.ChildCount > 0 && !(value.GetChild(0) is AexprconstContext) && tree.GetText() != value.GetChild(0).GetText())
@@ -271,7 +272,7 @@ namespace NppDB.PostgreSQL
                     }
                     else
                     {
-                        if (expr is Antlr4.Runtime.Tree.IParseTree tree)
+                        if (expr is IParseTree tree)
                         {
                             rhsCleaned.Add(tree);
                         }
@@ -322,19 +323,19 @@ namespace NppDB.PostgreSQL
         }
         public static object GetFieldValue(dynamic obj, string field)
         {
-            System.Reflection.FieldInfo fieldInfo = ((Type)obj.GetType()).GetField(field);
+            FieldInfo fieldInfo = ((Type)obj.GetType()).GetField(field);
             return fieldInfo?.GetValue(obj);
         }
 
         public static bool DoesFieldExist(dynamic obj, string field)
         {
-            System.Reflection.FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
+            FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
             return fieldInfos.Where(p => p.Name.Equals(field)).Any();
         }
 
         public static IList<dynamic> FindSimilarNotNullExistingFields(dynamic obj, string field)
         {
-            System.Reflection.FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
+            FieldInfo[] fieldInfos = ((Type)obj.GetType()).GetFields();
             return fieldInfos.Where(p => p.Name.Contains(field) && p.GetValue(obj) != null).Select(p => p.GetValue(obj)).ToList();
         }
 
@@ -360,11 +361,11 @@ namespace NppDB.PostgreSQL
             return null;
         }
 
-        public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext[] contexts)
+        public static bool IsSelectPramaryContextSelectStar(Simple_select_pramaryContext[] contexts)
         {
             if (contexts != null && contexts.Length > 0)
             {
-                PostgreSQLParser.Simple_select_pramaryContext ctx = contexts[0];
+                Simple_select_pramaryContext ctx = contexts[0];
                 if (IsSelectPramaryContextSelectStar(ctx))
                 {
                     return true;
@@ -373,7 +374,7 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        public static bool IsSelectPramaryContextSelectStar(PostgreSQLParser.Simple_select_pramaryContext context)
+        public static bool IsSelectPramaryContextSelectStar(Simple_select_pramaryContext context)
         {
             if (context != null && HasSelectStar(context))
             {
@@ -382,7 +383,7 @@ namespace NppDB.PostgreSQL
             return false;
         }
 
-        public static bool HasOuterJoin(PostgreSQLParser.Simple_select_pramaryContext context)
+        public static bool HasOuterJoin(Simple_select_pramaryContext context)
         {
             if (context.from_clause()?.from_list()?._tables != null && context.from_clause()?.from_list()?._tables.Count > 0)
             {
@@ -415,7 +416,7 @@ namespace NppDB.PostgreSQL
             {
                 foreach (var item in ctx?.opt_target_list()?.target_list()?.target_el())
                 {
-                    if (item is PostgreSQLParser.Target_starContext) 
+                    if (item is Target_starContext) 
                     {
                         return true;
                     }
@@ -531,7 +532,8 @@ namespace NppDB.PostgreSQL
                     {
                         return false;
                     }
-                    else if (!HasText(tableRef.opt_alias_clause()) && !tableRef.relation_expr().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
+
+                    if (!HasText(tableRef.opt_alias_clause()) && !tableRef.relation_expr().GetText().ToLower().In(whereColumnRef_identifiers.ToArray()))
                     {
                         return false;
                     }

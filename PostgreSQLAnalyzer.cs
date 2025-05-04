@@ -1,10 +1,10 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-using NppDB.Comm;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
+using NppDB.Comm;
 using static NppDB.PostgreSQL.PostgreSQLAnalyzerHelper;
 using static PostgreSQLParser;
 
@@ -38,9 +38,9 @@ namespace NppDB.PostgreSQL
         {
             switch (context.RuleIndex)
             {
-                case PostgreSQLParser.RULE_simple_select_pramary:
+                case RULE_simple_select_pramary:
                     {
-                        if (context is PostgreSQLParser.Simple_select_pramaryContext ctx)
+                        if (context is Simple_select_pramaryContext ctx)
                         {
                             int tableCount = CountTablesInFromClause(ctx);
                             Target_elContext[] columns = GetColumns(ctx);
@@ -125,9 +125,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_having_clause: 
+                case RULE_having_clause: 
                     {
-                        if (context is PostgreSQLParser.Having_clauseContext ctx && HasText(ctx))
+                        if (context is Having_clauseContext ctx && HasText(ctx))
                         {
                             if (!HasText(ctx.a_expr()))
                             {
@@ -165,9 +165,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_from_list:
+                case RULE_from_list:
                     {
-                        if (context is PostgreSQLParser.From_listContext ctx && HasText(ctx))
+                        if (context is From_listContext ctx && HasText(ctx))
                         {
                             if (ctx._tables != null && ctx._tables.Count > 0) 
                             {
@@ -182,12 +182,12 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_where_clause: 
-                case PostgreSQLParser.RULE_where_or_current_clause: 
+                case RULE_where_clause: 
+                case RULE_where_or_current_clause: 
                     {
                         A_exprContext aExpr = null;
                         if (!HasText(context)) break;
-                        if (context is PostgreSQLParser.Where_clauseContext ctx && HasText(ctx))
+                        if (context is Where_clauseContext ctx && HasText(ctx))
                         {
                             aExpr = ctx.a_expr();
                             if (!HasText(aExpr))
@@ -196,7 +196,7 @@ namespace NppDB.PostgreSQL
                                 break;
                             }
                         }
-                        if (context is PostgreSQLParser.Where_or_current_clauseContext ctx2 && HasText(ctx2))
+                        if (context is Where_or_current_clauseContext ctx2 && HasText(ctx2))
                         {
                             aExpr = ctx2.a_expr();
                             if (!HasText(aExpr))
@@ -230,7 +230,7 @@ namespace NppDB.PostgreSQL
                         if (!HasText(value) || (HasText(value) && value.EXISTS() == null))
                         {
                             List<IParseTree> subQueries = new List<IParseTree>();
-                            FindAllTargetTypes(aExpr, typeof(PostgreSQLParser.Simple_select_pramaryContext), subQueries);
+                            FindAllTargetTypes(aExpr, typeof(Simple_select_pramaryContext), subQueries);
                             A_expr_inContext a_expr_inContext = (A_expr_inContext)FindFirstTargetType(aExpr, typeof(A_expr_inContext));
                             A_expr_compareContext a_expr_compareContext = (A_expr_compareContext)FindFirstTargetType(aExpr, typeof(A_expr_compareContext));
                             Simple_select_pramaryContext subQuery = (Simple_select_pramaryContext)FindFirstTargetType(aExpr, typeof(Simple_select_pramaryContext));
@@ -259,9 +259,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_select_clause: 
+                case RULE_select_clause: 
                     {
-                        if (context is PostgreSQLParser.Select_clauseContext ctx)
+                        if (context is Select_clauseContext ctx)
                         {
                             if ((ctx.union != null || ctx.except != null) && ctx.first_intersect != null && ctx.second_intersect != null) 
                             {
@@ -274,9 +274,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_simple_select_intersect: 
+                case RULE_simple_select_intersect: 
                     {
-                        if (context is PostgreSQLParser.Simple_select_intersectContext ctx)
+                        if (context is Simple_select_intersectContext ctx)
                         {
                             if (ctx.intersect != null && ctx.first_pramary != null && ctx.second_pramary != null) 
                             {
@@ -289,17 +289,17 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_updatestmt: 
-                case PostgreSQLParser.RULE_deletestmt: 
-                case PostgreSQLParser.RULE_insertstmt: 
+                case RULE_updatestmt: 
+                case RULE_deletestmt: 
+                case RULE_insertstmt: 
                     {
-                        if ((context is PostgreSQLParser.UpdatestmtContext && HasText(context)) 
-                            || (context is PostgreSQLParser.DeletestmtContext && HasText(context))
-                            || (context is PostgreSQLParser.InsertstmtContext && HasText(context))
+                        if ((context is UpdatestmtContext && HasText(context)) 
+                            || (context is DeletestmtContext && HasText(context))
+                            || (context is InsertstmtContext && HasText(context))
                         )
                         {
                             List<IParseTree> subQueries = new List<IParseTree>();
-                            FindAllTargetTypes(context, typeof(PostgreSQLParser.Select_no_parensContext), subQueries);
+                            FindAllTargetTypes(context, typeof(Select_no_parensContext), subQueries);
                             foreach (Select_no_parensContext subQuery in subQueries)
                             {
                                 if (HasText(subQuery.opt_sort_clause()) && !(HasText(subQuery.opt_select_limit()) || HasText(subQuery.select_limit())))
@@ -316,7 +316,7 @@ namespace NppDB.PostgreSQL
                                 }
                             }
                         }
-                        if (context is PostgreSQLParser.InsertstmtContext ctx)
+                        if (context is InsertstmtContext ctx)
                         {
                             int insertColumnCount = CountInsertColumns(ctx);
                             if (insertColumnCount == 0 && ctx?.insert_rest()?.OVERRIDING() == null && ctx?.insert_rest()?.DEFAULT() == null && ctx?.insert_rest()?.VALUES() == null)
@@ -331,9 +331,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_select_no_parens: 
+                case RULE_select_no_parens: 
                     {
-                        if (context is PostgreSQLParser.Select_no_parensContext ctx && HasText(ctx))
+                        if (context is Select_no_parensContext ctx && HasText(ctx))
                         {
                             Simple_select_pramaryContext value = (Simple_select_pramaryContext)FindFirstTargetType(ctx, typeof(Simple_select_pramaryContext));
                             Target_elContext[] columns2 = GetColumns(value);
@@ -351,7 +351,7 @@ namespace NppDB.PostgreSQL
                                 }
                             }
                             List<IParseTree> subQueries = new List<IParseTree>();
-                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.Select_no_parensContext), subQueries);
+                            FindAllTargetTypes(ctx, typeof(Select_no_parensContext), subQueries);
                             foreach (Select_no_parensContext subQuery in subQueries)
                             {
                                 if (HasText(subQuery.opt_sort_clause()) && !(HasText(subQuery.opt_select_limit()) || HasText(subQuery.select_limit())))
@@ -370,16 +370,16 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_select_limit: 
+                case RULE_select_limit: 
                     {
-                        if (context is PostgreSQLParser.Select_limitContext ctx && HasText(ctx))
+                        if (context is Select_limitContext ctx && HasText(ctx))
                         {
-                            PostgreSQLParser.Select_no_parensContext selectNoParensParent = null;
-                            if (ctx.Parent is PostgreSQLParser.Opt_select_limitContext optLimit) 
+                            Select_no_parensContext selectNoParensParent = null;
+                            if (ctx.Parent is Opt_select_limitContext optLimit) 
                             {
                                 selectNoParensParent = (Select_no_parensContext) optLimit.Parent;
                             }
-                            if (ctx.Parent is PostgreSQLParser.Select_no_parensContext selectParent) 
+                            if (ctx.Parent is Select_no_parensContext selectParent) 
                             {
                                 selectNoParensParent = selectParent;
                             }
@@ -435,12 +435,12 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_sortby_list: 
+                case RULE_sortby_list: 
                     {
-                        if (context is PostgreSQLParser.Sortby_listContext ctx)
+                        if (context is Sortby_listContext ctx)
                         {
                             List<IParseTree> aexprconsts = new List<IParseTree>();
-                            FindAllTargetTypes(ctx, typeof(PostgreSQLParser.AexprconstContext), aexprconsts);
+                            FindAllTargetTypes(ctx, typeof(AexprconstContext), aexprconsts);
                             foreach (IParseTree item in aexprconsts)
                             {
                                 if (item is AexprconstContext aexprconst) 
@@ -455,9 +455,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_func_application: 
+                case RULE_func_application: 
                     {
-                        if (context is PostgreSQLParser.Func_applicationContext ctx)
+                        if (context is Func_applicationContext ctx)
                         {
                             if (ctx.func_name().GetText().ToLower() == "sum" && ctx.func_arg_list().GetText() == "1")
                             {
@@ -466,9 +466,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_a_expr_like: 
+                case RULE_a_expr_like: 
                     {
-                        if (context is PostgreSQLParser.A_expr_likeContext ctx && HasText(ctx))
+                        if (context is A_expr_likeContext ctx && HasText(ctx))
                         {
                             if (HasText(ctx.rhs) && ctx._ILIKE == null)
                             {
@@ -503,9 +503,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_a_expr_between: 
+                case RULE_a_expr_between: 
                     {
-                        if (context is PostgreSQLParser.A_expr_betweenContext ctx && HasText(ctx))
+                        if (context is A_expr_betweenContext ctx && HasText(ctx))
                         {
                             if ((HasText(ctx.rhs) && ctx.rhs.GetText().ToLower().Equals("null")) ||
                                     (HasText(ctx.between_r_h_s) && ctx.between_r_h_s.GetText().ToLower().Equals("null")))
@@ -515,9 +515,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_a_expr_compare: 
+                case RULE_a_expr_compare: 
                     {
-                        if (context is PostgreSQLParser.A_expr_compareContext ctx && HasText(ctx))
+                        if (context is A_expr_compareContext ctx && HasText(ctx))
                         {
                             ParserRuleContext rhs = FindCompareRhs(ctx);
                             if (ctx._operands.Count > 0 && (HasEqualityWithTextPattern(rhs) || HasEqualityWithTextPattern(ctx.lhs)))
@@ -561,9 +561,9 @@ namespace NppDB.PostgreSQL
                         }
                         break;
                     }
-                case PostgreSQLParser.RULE_a_expr_mul: 
+                case RULE_a_expr_mul: 
                     {
-                        if (context is PostgreSQLParser.A_expr_mulContext ctx && HasText(ctx))
+                        if (context is A_expr_mulContext ctx && HasText(ctx))
                         {
                             if (HasText(ctx.lhs) && ctx._rhs != null && ctx._rhs.Count > 0 && HasText(ctx._rhs[0]) && ctx.SLASH() != null &&
                                 ctx.lhs.GetText().ToLower().Contains("sum") &&
@@ -605,7 +605,7 @@ namespace NppDB.PostgreSQL
             in IList<StringBuilder> functionParams,
             in IList<StringBuilder> transactionStatementsEncountered)
         {
-            if (context is PostgreSQLParser.RootContext && commands.Last().Context == null)
+            if (context is RootContext && commands.Last().Context == null)
             {
                 commands.Last().Context = context; // base starting branch
                 if (context.ChildCount > 0)
@@ -640,7 +640,7 @@ namespace NppDB.PostgreSQL
             for (var i = 0; i < context.ChildCount; ++i)
             {
                 var child = context.GetChild(i);
-                if (child is PostgreSQLParser.IdentifierContext identifier)
+                if (child is IdentifierContext identifier)
                 {
                     _AnalyzeForDoubleQuotes(identifier, commands.Last());
                 }
@@ -685,12 +685,12 @@ namespace NppDB.PostgreSQL
                         {
                             commands.Last().Text = commands.Last().Text + child.GetText() + tokenSeparator;
                         }
-                        else if (context.RuleIndex != PostgreSQLParser.RULE_function_or_procedure ||
-                            token.Type != PostgreSQLParser.OPEN_PAREN &&
+                        else if (context.RuleIndex != RULE_function_or_procedure ||
+                            token.Type != OPEN_PAREN &&
                             child.GetText() != "(" &&
-                            token.Type != PostgreSQLParser.CLOSE_PAREN &&
+                            token.Type != CLOSE_PAREN &&
                             child.GetText() != ")" &&
-                            token.Type != PostgreSQLParser.COMMA &&
+                            token.Type != COMMA &&
                             child.GetText() != ",")
                         {
                             functionParams.Last().Append(child.GetText() + tokenSeparator);
@@ -702,9 +702,9 @@ namespace NppDB.PostgreSQL
                     var ctx = child as RuleContext;
 
 
-                    if (ctx?.RuleIndex == PostgreSQLParser.RULE_transactionstmt)
+                    if (ctx?.RuleIndex == RULE_transactionstmt)
                     {
-                        var statements = new string[] { "BEGIN", "END" };
+                        var statements = new[] { "BEGIN", "END" };
                         if (statements.Any(s => ctx?.GetText().IndexOf(s, StringComparison.OrdinalIgnoreCase) >= 0))
                         {
                             transactionStatementsEncountered?.Add(new StringBuilder(ctx?.GetText()));
@@ -712,7 +712,7 @@ namespace NppDB.PostgreSQL
                     };
 
 
-                    if (ctx?.RuleIndex == PostgreSQLParser.RULE_empty_grouping_set) continue;
+                    if (ctx?.RuleIndex == RULE_empty_grouping_set) continue;
 
                     enclosingCommandIndex = _CollectCommands(ctx, caretPosition, tokenSeparator, commandSeparatorTokenType, commands, enclosingCommandIndex, functionParams, transactionStatementsEncountered);
                 }

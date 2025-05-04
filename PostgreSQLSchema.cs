@@ -1,5 +1,8 @@
-﻿using NppDB.Comm;
+﻿using System;
+using System.Data;
 using System.Windows.Forms;
+using Npgsql;
+using NppDB.Comm;
 
 namespace NppDB.PostgreSQL
 {
@@ -10,61 +13,113 @@ namespace NppDB.PostgreSQL
         public PostgreSqlSchema()
         {
             SelectedImageKey = ImageKey = "Database";
-            Refresh();
         }
 
         public void Refresh()
         {
             Nodes.Clear();
+            var connect = GetDbConnect();
+            if (connect == null) return;
 
-            var tableGroup = new PostgreSqlTableGroup();
-            tableGroup.Nodes.Add(new TreeNode("")); // Add dummy node
-            Nodes.Add(tableGroup);
+            using (var checkConn = connect.GetConnection())
+            {
+                try
+                {
+                    checkConn.Open();
 
-            var foreignTableGroup = new PostgreSQLForeignTableGroup();
-            foreignTableGroup.Nodes.Add(new TreeNode("")); // Add dummy node
-            Nodes.Add(foreignTableGroup);
+                    var tableGroup = new PostgreSqlTableGroup();
+                    if (SchemaGroupHasChildren(checkConn, Schema, "BASE TABLE"))
+                        tableGroup.Nodes.Add(new TreeNode(""));
+                    Nodes.Add(tableGroup);
 
-            var viewGroup = new PostgreSQLViewGroup();
-            viewGroup.Nodes.Add(new TreeNode("")); // Add dummy node
-            Nodes.Add(viewGroup);
+                    var foreignTableGroup = new PostgreSqlForeignTableGroup();
+                    if (SchemaGroupHasChildren(checkConn, Schema, "FOREIGN TABLE"))
+                        foreignTableGroup.Nodes.Add(new TreeNode(""));
+                    Nodes.Add(foreignTableGroup);
 
-            var matViewGroup = new PostgreSQLMaterializedViewGroup();
-            matViewGroup.Nodes.Add(new TreeNode("")); // Add dummy node
-            Nodes.Add(matViewGroup);
+                    var viewGroup = new PostgreSqlViewGroup();
+                    if (SchemaGroupHasChildren(checkConn, Schema, "VIEW"))
+                        viewGroup.Nodes.Add(new TreeNode(""));
+                    Nodes.Add(viewGroup);
 
-            var functionGroup = new PostgreSQLFunctionGroup();
-            functionGroup.Nodes.Add(new TreeNode("")); // Add dummy node
-            Nodes.Add(functionGroup);
+                    var matViewGroup = new PostgreSqlMaterializedViewGroup();
+                    if (SchemaGroupHasChildren(checkConn, Schema, "MATERIALIZED VIEW"))
+                        matViewGroup.Nodes.Add(new TreeNode(""));
+                    Nodes.Add(matViewGroup);
 
-            // Commented out MS Access ones remain commented
-            //Nodes.Add(new MSAccessTableGroup());
-            //Nodes.Add(new MSAccessViewGroup());
+                    var functionGroup = new PostgreSqlFunctionGroup();
+                    if (SchemaGroupHasChildren(checkConn, Schema, "FUNCTION"))
+                        functionGroup.Nodes.Add(new TreeNode(""));
+                    Nodes.Add(functionGroup);
+                }
+                catch (Exception ex)
+                {
+                     Console.WriteLine($"Error refreshing schema {Schema}: {ex.Message}");
+                     if(Nodes.Count == 0)
+                     {
+                         Nodes.Add(new PostgreSqlTableGroup());
+                         Nodes.Add(new PostgreSqlForeignTableGroup());
+                         Nodes.Add(new PostgreSqlViewGroup());
+                         Nodes.Add(new PostgreSqlMaterializedViewGroup());
+                         Nodes.Add(new PostgreSqlFunctionGroup());
+                     }
+                }
+            }
+        }
+
+        private static bool SchemaGroupHasChildren(NpgsqlConnection conn, string schemaName, string objectType)
+        {
+            if (conn == null || conn.State != ConnectionState.Open)
+            {
+                Console.WriteLine("DEBUG: SchemaGroupHasChildren returning TRUE (Connection not open or null)");
+                return true;
+            }
+
+            string query;
+            switch (objectType)
+            {
+                case "BASE TABLE":          query = "SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'BASE TABLE' LIMIT 1"; break;
+                case "VIEW":                query = "SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'VIEW' LIMIT 1"; break;
+                case "FOREIGN TABLE":       query = "SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_type = 'FOREIGN TABLE' LIMIT 1"; break;
+                case "MATERIALIZED VIEW":   query = "SELECT 1 FROM pg_catalog.pg_matviews WHERE schemaname = $1 LIMIT 1"; break;
+                case "FUNCTION":            query = "SELECT 1 FROM pg_catalog.pg_proc p LEFT JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = $1 AND p.prokind = 'f' LIMIT 1"; break;
+                default:
+                     Console.WriteLine($"DEBUG: SchemaGroupHasChildren returning TRUE (Unknown objectType: {objectType})");
+                     return true;
+            }
+
+            try
+            {
+                using (var cmd = new NpgsqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue(schemaName);
+
+                    var result = cmd.ExecuteScalar();
+                    var hasChildren = (result != null && result != DBNull.Value);
+
+                    return hasChildren;
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMsg = $"DEBUG: EXCEPTION checking {objectType} for schema '{schemaName}':\n\n{ex.Message}";
+                Console.WriteLine(errorMsg + "\n" + ex.StackTrace);
+
+                return false;
+            }
         }
 
         public ContextMenuStrip GetMenu()
         {
             var menuList = new ContextMenuStrip { ShowImageMargin = false };
             menuList.Items.Add(new ToolStripButton("Refresh", null, (s, e) => { Refresh(); }));
-            var connect = GetDBConnect();
-            if (connect?.CommandHost == null) return menuList;
-
-            //menuList.Items.Add(new ToolStripSeparator());
-            //var host = connect.CommandHost;
-            //menuList.Items.Add(new ToolStripButton("Set as default path", null, (s, e) =>
-            //{
-            //    var id = host.Execute(NppDBCommandType.GetActivatedBufferID, null);
-            //    var query = $"ALTER ROLE {connect.Account} SET search_path TO {Schema};";
-            //    host.Execute(NppDBCommandType.ExecuteSQL, new[] { id, query });
-            //    connect.Refresh();
-            //}));
+            GetDbConnect();
             return menuList;
         }
 
-        private PostgreSqlConnect GetDBConnect()
+        private PostgreSqlConnect GetDbConnect()
         {
-            var connect = Parent as PostgreSqlConnect;
-            return connect;
+            return Parent as PostgreSqlConnect;
         }
     }
 }

@@ -1,11 +1,14 @@
-﻿namespace NppDB.PostgreSQL
+﻿using System.ComponentModel;
+using System.Windows.Forms;
+
+namespace NppDB.PostgreSQL
 {
     partial class frmPostgreSQLConnect
     {
         /// <summary>
         /// Required designer variable.
         /// </summary>
-        private System.ComponentModel.IContainer components = null;
+        private IContainer components = null;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -218,21 +221,21 @@
 
         #endregion
 
-        private System.Windows.Forms.TextBox txtServer;
-        private System.Windows.Forms.Label lblServer;
-        private System.Windows.Forms.Label lblPort;
-        private System.Windows.Forms.Label lblUsername;
-        private System.Windows.Forms.TextBox txtUsername;
-        private System.Windows.Forms.Label lblPassword;
-        private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnOK;
-        private System.Windows.Forms.Button btnCancel;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox txtDatabase;
-        private System.Windows.Forms.CheckBox cbxShowPwd;
-        private System.Windows.Forms.NumericUpDown nmrPort;
-        private System.Windows.Forms.Label lblConnName;
-        private System.Windows.Forms.TextBox txtConnName;
-        private System.Windows.Forms.Button btnTestConnection;
+        private TextBox txtServer;
+        private Label lblServer;
+        private Label lblPort;
+        private Label lblUsername;
+        private TextBox txtUsername;
+        private Label lblPassword;
+        private TextBox txtPassword;
+        private Button btnOK;
+        private Button btnCancel;
+        private Label label1;
+        private TextBox txtDatabase;
+        private CheckBox cbxShowPwd;
+        private NumericUpDown nmrPort;
+        private Label lblConnName;
+        private TextBox txtConnName;
+        private Button btnTestConnection;
     }
 }

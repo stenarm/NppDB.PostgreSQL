@@ -1,13 +1,15 @@
-﻿using NppDB.Comm;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Antlr4.Runtime;
-using System.IO;
-using System.Data;
 using Npgsql;
-using System.Text.RegularExpressions;
+using NppDB.Comm;
+using TimeZoneConverter;
 
 namespace NppDB.PostgreSQL
 {
@@ -157,7 +159,7 @@ namespace NppDB.PostgreSQL
                                 {
                                     Type type = rd.GetFieldType(i);
                                     // Handle DBNull type
-                                    if (type == typeof(System.DBNull) ||
+                                    if (type == typeof(DBNull) ||
                                         (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(i) == "money") 
                                         || type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(DateTimeOffset)
                                         )
@@ -194,7 +196,7 @@ namespace NppDB.PostgreSQL
                                             if (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(j) == "money")
                                             {
 
-                                                rdi = string.Format(new System.Globalization.CultureInfo(monetaryLocaleOrAbortedMessage, false), "{0:c0}", rdi);
+                                                rdi = string.Format(new CultureInfo(monetaryLocaleOrAbortedMessage, false), "{0:c0}", rdi);
                                             }
                                             if (type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(DateTimeOffset))
                                             {
@@ -206,7 +208,7 @@ namespace NppDB.PostgreSQL
                                                         string timeZoneFinalString = "+00";
                                                         if (!string.IsNullOrEmpty(timezoneName)) 
                                                         {
-                                                            TimeZoneInfo timeZoneInfo = TimeZoneConverter.TZConvert.GetTimeZoneInfo(timezoneName);
+                                                            TimeZoneInfo timeZoneInfo = TZConvert.GetTimeZoneInfo(timezoneName);
                                                             int hours = timeZoneInfo.BaseUtcOffset.Hours;
                                                             string timezoneStringStart = (hours < 0 ? "-" : "+");
                                                             string timezoneStringEnd = (Math.Abs(hours) >= 10 ? $"{Math.Abs(hours)}" : $"0{Math.Abs(hours)}");

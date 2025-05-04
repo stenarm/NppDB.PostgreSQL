@@ -1,8 +1,8 @@
 using System;
-using Antlr4.Runtime;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Antlr4.Runtime;
 
 public class PostgreSQLLexerBase : Lexer
 {
@@ -23,9 +23,9 @@ public class PostgreSQLLexerBase : Lexer
 
     public override string GrammarFileName => throw new NotImplementedException();
 
-    public void pushTag() { tags.Enqueue(this.Text); }
+    public void pushTag() { tags.Enqueue(Text); }
 
-    public bool isTag() { return this.Text.Equals(tags.Peek()); }
+    public bool isTag() { return Text.Equals(tags.Peek()); }
 
     public void popTag()
     {

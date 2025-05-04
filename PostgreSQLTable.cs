@@ -1,11 +1,11 @@
-﻿using NppDB.Comm;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Text.RegularExpressions;
 using System.Linq;
-using Npgsql;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using Npgsql;
+using NppDB.Comm;
 
 namespace NppDB.PostgreSQL
 {
@@ -328,13 +328,13 @@ namespace NppDB.PostgreSQL
             }
             if (TypeName == "MATERIALIZED_VIEW")
             {
-                menuList.Items.Add(new ToolStripButton($"REFRESH MATERIALIZED VIEW", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton("REFRESH MATERIALIZED VIEW", null, (s, e) =>
                 {
                     var query = $"REFRESH MATERIALIZED VIEW \"{Text}\";";
                     var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
                     host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                 }));
-                menuList.Items.Add(new ToolStripButton($"DROP MATERIALIZED VIEW", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton("DROP MATERIALIZED VIEW", null, (s, e) =>
                 {
                     var query = $"DROP MATERIALIZED VIEW \"{Text}\";";
                     var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
