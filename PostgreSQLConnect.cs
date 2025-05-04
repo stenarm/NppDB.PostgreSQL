@@ -339,7 +339,7 @@ namespace NppDB.PostgreSQL
                     while (reader.Read())
                     {
                         var schemaName = reader["nspname"].ToString();
-                        var db = new PostgreSQLSchema { Text = schemaName, Schema = schemaName, Foreign = foreignSchemas.Contains(schemaName) };
+                        var db = new PostgreSqlSchema { Text = schemaName, Schema = schemaName, Foreign = foreignSchemas.Contains(schemaName) };
                         Nodes.Add(db);
                     }
                 }

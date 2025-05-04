@@ -5,9 +5,9 @@ using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
-    public class PostgreSQLTableGroup : TreeNode, IRefreshable, IMenuProvider
+    public class PostgreSqlTableGroup : TreeNode, IRefreshable, IMenuProvider
     {
-        public PostgreSQLTableGroup()
+        public PostgreSqlTableGroup()
         {
             Query = "SELECT table_name FROM information_schema.tables WHERE table_schema='{0}' AND table_type in ('BASE TABLE') ORDER BY table_name";
             Text = "Base Tables";
@@ -18,10 +18,14 @@ namespace NppDB.PostgreSQL
 
         protected virtual TreeNode CreateTreeNode(NpgsqlDataReader reader)
         {
-            return new PostgreSqlTable
+            var tableNode = new PostgreSqlTable
             {
                 Text = reader["table_name"].ToString()
             };
+
+            tableNode.Nodes.Add(new TreeNode(""));
+
+            return tableNode;
         }
 
         public void Refresh()
@@ -35,9 +39,9 @@ namespace NppDB.PostgreSQL
                 {
                     cnn.Open();
                     Nodes.Clear();
-                    using (NpgsqlCommand command = new NpgsqlCommand(String.Format(Query, Parent.Text), cnn))
+                    using (var command = new NpgsqlCommand(string.Format(Query, Parent.Text), cnn))
                     {
-                        using (NpgsqlDataReader reader = command.ExecuteReader())
+                        using (var reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {

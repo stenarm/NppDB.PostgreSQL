@@ -3,11 +3,11 @@ using System.Windows.Forms;
 
 namespace NppDB.PostgreSQL
 {
-    public class PostgreSQLSchema : TreeNode, IRefreshable, IMenuProvider
+    public class PostgreSqlSchema : TreeNode, IRefreshable, IMenuProvider
     {
         public string Schema { get; set; }
         public bool Foreign { get; set; }
-        public PostgreSQLSchema()
+        public PostgreSqlSchema()
         {
             SelectedImageKey = ImageKey = "Database";
             Refresh();
@@ -16,14 +16,30 @@ namespace NppDB.PostgreSQL
         public void Refresh()
         {
             Nodes.Clear();
-            Nodes.Add(new PostgreSQLTableGroup());
-            Nodes.Add(new PostgreSQLForeignTableGroup());
-            Nodes.Add(new PostgreSQLViewGroup());
-            Nodes.Add(new PostgreSQLMaterializedViewGroup());
-            Nodes.Add(new PostgreSQLFunctionGroup());
+
+            var tableGroup = new PostgreSqlTableGroup();
+            tableGroup.Nodes.Add(new TreeNode("")); // Add dummy node
+            Nodes.Add(tableGroup);
+
+            var foreignTableGroup = new PostgreSQLForeignTableGroup();
+            foreignTableGroup.Nodes.Add(new TreeNode("")); // Add dummy node
+            Nodes.Add(foreignTableGroup);
+
+            var viewGroup = new PostgreSQLViewGroup();
+            viewGroup.Nodes.Add(new TreeNode("")); // Add dummy node
+            Nodes.Add(viewGroup);
+
+            var matViewGroup = new PostgreSQLMaterializedViewGroup();
+            matViewGroup.Nodes.Add(new TreeNode("")); // Add dummy node
+            Nodes.Add(matViewGroup);
+
+            var functionGroup = new PostgreSQLFunctionGroup();
+            functionGroup.Nodes.Add(new TreeNode("")); // Add dummy node
+            Nodes.Add(functionGroup);
+
+            // Commented out MS Access ones remain commented
             //Nodes.Add(new MSAccessTableGroup());
             //Nodes.Add(new MSAccessViewGroup());
-            // add other categories as stored procedures
         }
 
         public ContextMenuStrip GetMenu()

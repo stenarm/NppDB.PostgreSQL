@@ -424,9 +424,9 @@ namespace NppDB.PostgreSQL
             return connect;
         }
 
-        private PostgreSQLSchema GetSchema()
+        private PostgreSqlSchema GetSchema()
         {
-            return Parent.Parent as PostgreSQLSchema;
+            return Parent.Parent as PostgreSqlSchema;
         }
 
         private string GetSchemaName()

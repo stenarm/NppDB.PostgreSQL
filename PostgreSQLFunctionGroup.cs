@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
-    internal class PostgreSQLFunctionGroup : PostgreSQLTableGroup
+    internal class PostgreSQLFunctionGroup : PostgreSqlTableGroup
     {
         public PostgreSQLFunctionGroup()
         {

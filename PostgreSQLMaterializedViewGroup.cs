@@ -3,7 +3,7 @@ using Npgsql;
 
 namespace NppDB.PostgreSQL
 {
-    internal class PostgreSQLMaterializedViewGroup : PostgreSQLTableGroup
+    internal class PostgreSQLMaterializedViewGroup : PostgreSqlTableGroup
     {
         public PostgreSQLMaterializedViewGroup()
         {
