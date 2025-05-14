@@ -316,7 +316,7 @@ namespace NppDB.PostgreSQL
             var schemaName = GetSchemaName();
             if (TypeName != "FUNCTION") 
             {
-                menuList.Items.Add(new ToolStripButton($"SELECT * FROM {Text}", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton($"Select all rows", null, (s, e) =>
                 {
                     host.Execute(NppDbCommandType.NewFile, null);
                     var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
@@ -325,18 +325,27 @@ namespace NppDB.PostgreSQL
                     host.Execute(NppDbCommandType.CreateResultView, new[] { id, connect, connect.CreateSqlExecutor() });
                     host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                 }));
+                menuList.Items.Add(new ToolStripButton($"Select random 100 rows", null, (s, e) =>
+                {
+                    host.Execute(NppDbCommandType.NewFile, null);
+                    var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                    var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\" FETCH FIRST 100 ROWS ONLY;";
+                    host.Execute(NppDbCommandType.AppendToCurrentView, new object[] { query });
+                    host.Execute(NppDbCommandType.CreateResultView, new[] { id, connect, connect.CreateSqlExecutor() });
+                    host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                }));
             }
             if (TypeName == "MATERIALIZED_VIEW")
             {
-                menuList.Items.Add(new ToolStripButton("REFRESH MATERIALIZED VIEW", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton("Refresh materialized view", null, (s, e) =>
                 {
-                    var query = $"REFRESH MATERIALIZED VIEW \"{Text}\";";
+                    var query = $"Refresh materialized view \"{Text}\";";
                     var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
                     host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                 }));
-                menuList.Items.Add(new ToolStripButton("DROP MATERIALIZED VIEW", null, (s, e) =>
+                menuList.Items.Add(new ToolStripButton("Drop materialized view", null, (s, e) =>
                 {
-                    var query = $"DROP MATERIALIZED VIEW \"{Text}\";";
+                    var query = $"Drop materialized view \"{Text}\";";
                     var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
                     host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                 }));
@@ -347,7 +356,7 @@ namespace NppDB.PostgreSQL
                 {
                     if (TypeName != "FUNCTION")
                     {
-                        menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                        menuList.Items.Add(new ToolStripButton($"Drop table", null, (s, e) =>
                         {
                             var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
                             var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
@@ -356,7 +365,7 @@ namespace NppDB.PostgreSQL
                     }
                     else
                     {
-                        menuList.Items.Add(new ToolStripButton($"DROP {TypeName.ToUpper()}", null, (s, e) =>
+                        menuList.Items.Add(new ToolStripButton($"Drop table", null, (s, e) =>
                         {
                             var paramsQuery = CollectFunctionParams(connect);
                             var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\"{paramsQuery};";
