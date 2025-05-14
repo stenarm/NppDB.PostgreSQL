@@ -356,19 +356,31 @@ namespace NppDB.PostgreSQL
                 {
                     if (TypeName != "FUNCTION")
                     {
-                        menuList.Items.Add(new ToolStripButton($"Drop table", null, (s, e) =>
+                        menuList.Items.Add(new ToolStripButton($"Drop table (RESTRICT)", null, (s, e) =>
                         {
                             var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
+                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                        }));
+                        menuList.Items.Add(new ToolStripButton($"Drop table (CASCADE)", null, (s, e) =>
+                        {
+                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\" CASCADE;";
                             var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
                             host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                         }));
                     }
                     else
                     {
-                        menuList.Items.Add(new ToolStripButton($"Drop table", null, (s, e) =>
+                        menuList.Items.Add(new ToolStripButton($"Drop table (RESTRICT)", null, (s, e) =>
                         {
                             var paramsQuery = CollectFunctionParams(connect);
                             var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\"{paramsQuery};";
+                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                        }));
+                        menuList.Items.Add(new ToolStripButton($"Drop table (CASCADE)", null, (s, e) =>
+                        {
+                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\" CASCADE;";
                             var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
                             host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
                         }));

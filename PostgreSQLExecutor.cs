@@ -13,9 +13,9 @@ using TimeZoneConverter;
 
 namespace NppDB.PostgreSQL
 {
-    public class PostgreSQLLexerErrorListener : ConsoleErrorListener<int>
+    public class PostgreSqlLexerErrorListener : ConsoleErrorListener<int>
     {
-        public new static readonly PostgreSQLLexerErrorListener Instance = new PostgreSQLLexerErrorListener();
+        public new static readonly PostgreSqlLexerErrorListener Instance = new PostgreSqlLexerErrorListener();
 
         public override void SyntaxError(TextWriter output, IRecognizer recognizer,
             int offendingSymbol, int line, int col, string msg, RecognitionException e)
@@ -24,37 +24,32 @@ namespace NppDB.PostgreSQL
         }
     }
 
-    public class PostgreSQLParserErrorListener : BaseErrorListener
+    public class PostgreSqlParserErrorListener : BaseErrorListener
     {
-        private readonly IList<ParserError> _errors = new List<ParserError>();
-        public IList<ParserError> Errors => _errors;
+        public IList<ParserError> Errors { get; } = new List<ParserError>();
 
         public override void SyntaxError(TextWriter output, IRecognizer recognizer,
             IToken offendingSymbol, int line, int col, string msg, RecognitionException e)
         {
             Console.WriteLine($@"PARSER ERROR: {e?.GetType().ToString() ?? ""}: {msg} ({line}:{col})");
-            _errors.Add(new ParserError
+            Errors.Add(new ParserError
             {
                 Text = msg,
                 StartLine = line,
                 StartColumn = col,
                 StartOffset = offendingSymbol.StartIndex,
-                // StopLine = ,
-                // StopColumn = ,
                 StopOffset = offendingSymbol.StopIndex,
             });
         }
     }
 
-    public class PostgreSQLExecutor : ISqlExecutor
+    public class PostgreSqlExecutor : ISqlExecutor
     {
         private Thread _execTh;
-        private readonly Func<NpgsqlConnection> _connector;
-        private NpgsqlConnection _connection;
+        private readonly NpgsqlConnection _connection;
 
-        public PostgreSQLExecutor(Func<NpgsqlConnection> connector)
+        public PostgreSqlExecutor(Func<NpgsqlConnection> connector)
         {
-            _connector = connector;
             if (connector == null) 
             {
                 _connection = null;
@@ -68,22 +63,21 @@ namespace NppDB.PostgreSQL
 
         private string GetMonetaryLocale()
         {
-            String query = "SHOW LC_MONETARY;";
+            const string query = "SHOW LC_MONETARY;";
             try
             {
-                using (NpgsqlCommand command = new NpgsqlCommand(query, _connection))
+                using (var command = new NpgsqlCommand(query, _connection))
                 {
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            string lc_monetary = reader["lc_monetary"].ToString();
-                            if (lc_monetary != null) 
+                            var lcMonetary = reader["lc_monetary"].ToString();
                             {
-                                Match lc_monetaryTargetMatch = Regex.Match(lc_monetary, @".._..", RegexOptions.IgnoreCase);
-                                if (lc_monetaryTargetMatch.Success && lc_monetaryTargetMatch.Groups.Count > 0)
+                                var lcMonetaryTargetMatch = Regex.Match(lcMonetary, @".._..", RegexOptions.IgnoreCase);
+                                if (lcMonetaryTargetMatch.Success && lcMonetaryTargetMatch.Groups.Count > 0)
                                 {
-                                    return lc_monetaryTargetMatch.Groups[0].ToString();
+                                    return lcMonetaryTargetMatch.Groups[0].ToString();
                                 }
                             }
                         }
@@ -98,12 +92,12 @@ namespace NppDB.PostgreSQL
         }
         private string GetTimeZone()
         {
-            String query = "show timezone;";
+            const string query = "show timezone;";
             try
             {
-                using (NpgsqlCommand command = new NpgsqlCommand(query, _connection))
+                using (var command = new NpgsqlCommand(query, _connection))
                 {
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    using (var reader = command.ExecuteReader())
                     {
                         while (reader.Read())
                         {
@@ -119,7 +113,7 @@ namespace NppDB.PostgreSQL
             return null;
         }
 
-        public bool IsAborted(string message) 
+        private static bool IsAborted(string message) 
         {
             if (!string.IsNullOrEmpty(message))
             {
@@ -138,9 +132,9 @@ namespace NppDB.PostgreSQL
                     {
                         _connection.Open();
                     }
-                    string monetaryLocaleOrAbortedMessage = GetMonetaryLocale();
-                    string timezoneName = GetTimeZone();
-                    bool isAborted = IsAborted(monetaryLocaleOrAbortedMessage);
+                    var monetaryLocaleOrAbortedMessage = GetMonetaryLocale();
+                    var timezoneName = GetTimeZone();
+                    var isAborted = IsAborted(monetaryLocaleOrAbortedMessage);
                     var results = new List<CommandResult>();
                     string lastSql = null;
                     try
@@ -151,48 +145,40 @@ namespace NppDB.PostgreSQL
                             lastSql = sql;
 
                             Console.WriteLine($@"SQL: <{sql}>");
-                            NpgsqlCommand cmd = new NpgsqlCommand(sql, _connection);
-                            using (NpgsqlDataReader rd = cmd.ExecuteReader())
+                            var cmd = new NpgsqlCommand(sql, _connection);
+                            using (var rd = cmd.ExecuteReader())
                             {
-                                DataTable dt = new DataTable();
-                                for (int i = 0; i < rd.FieldCount; i++)
+                                var dt = new DataTable();
+                                for (var i = 0; i < rd.FieldCount; i++)
                                 {
-                                    Type type = rd.GetFieldType(i);
-                                    // Handle DBNull type
+                                    var type = rd.GetFieldType(i);
                                     if (type == typeof(DBNull) ||
                                         (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(i) == "money") 
                                         || type == typeof(DateTime) || type == typeof(TimeSpan) || type == typeof(DateTimeOffset)
-                                        )
+                                       )
                                     {
                                         type = typeof(string);
                                     }
-                                    int existingColumnCount = 0;
-                                    foreach (DataColumn col in dt.Columns)
-                                    {
-                                        if (col.ColumnName.Trim().StartsWith(rd.GetName(i)))
-                                        {
-                                            existingColumnCount++;
-                                        }
-                                    }
-                                    DataColumn dataColumn = new DataColumn(rd.GetName(i) + (existingColumnCount == -0 ? "" : "(" + existingColumnCount + ")"), type);
+                                    var existingColumnCount = dt.Columns.Cast<DataColumn>().Count(col => col.ColumnName.Trim().StartsWith(rd.GetName(i)));
+                                    if (type == null) continue;
+                                    var dataColumn = new DataColumn(rd.GetName(i) + (existingColumnCount == -0 ? "" : "(" + existingColumnCount + ")"), type);
                                     dataColumn.Caption = rd.GetName(i);
                                     dt.Columns.Add(dataColumn);
                                 }
                                 while (rd.Read())
                                 {
-                                    DataRow row = dt.NewRow();
+                                    var row = dt.NewRow();
 
-                                    for (int j = 0; j < rd.FieldCount; j++)
+                                    for (var j = 0; j < rd.FieldCount; j++)
                                     {
-                                        // Handle DBNull value
                                         if (rd.IsDBNull(j))
                                         {
                                             row[j] = DBNull.Value;
                                         }
                                         else
                                         {
-                                            object rdi = rd[j];
-                                            Type type = rd.GetFieldType(j);
+                                            var rdi = rd[j];
+                                            var type = rd.GetFieldType(j);
                                             if (!string.IsNullOrEmpty(monetaryLocaleOrAbortedMessage) && !isAborted && rd.GetDataTypeName(j) == "money")
                                             {
 
@@ -205,13 +191,13 @@ namespace NppDB.PostgreSQL
                                                    
                                                     if (rd.GetDataTypeName(j).IndexOf("with time zone", StringComparison.OrdinalIgnoreCase) >= 0)
                                                     {
-                                                        string timeZoneFinalString = "+00";
+                                                        var timeZoneFinalString = "+00";
                                                         if (!string.IsNullOrEmpty(timezoneName)) 
                                                         {
-                                                            TimeZoneInfo timeZoneInfo = TZConvert.GetTimeZoneInfo(timezoneName);
-                                                            int hours = timeZoneInfo.BaseUtcOffset.Hours;
-                                                            string timezoneStringStart = (hours < 0 ? "-" : "+");
-                                                            string timezoneStringEnd = (Math.Abs(hours) >= 10 ? $"{Math.Abs(hours)}" : $"0{Math.Abs(hours)}");
+                                                            var timeZoneInfo = TZConvert.GetTimeZoneInfo(timezoneName);
+                                                            var hours = timeZoneInfo.BaseUtcOffset.Hours;
+                                                            var timezoneStringStart = (hours < 0 ? "-" : "+");
+                                                            var timezoneStringEnd = (Math.Abs(hours) >= 10 ? $"{Math.Abs(hours)}" : $"0{Math.Abs(hours)}");
                                                             timeZoneFinalString = timezoneStringStart + timezoneStringEnd;
                                                         }
                                                         if (rd.GetDataTypeName(j).StartsWith("timestamp"))
@@ -225,14 +211,7 @@ namespace NppDB.PostgreSQL
                                                     }
                                                     else if (rd.GetDataTypeName(j).IndexOf("without time zone", StringComparison.OrdinalIgnoreCase) >= 0)
                                                     {
-                                                        if (rd.GetDataTypeName(j).StartsWith("timestamp"))
-                                                        {
-                                                            rdi = rd.GetDateTime(j).ToString("yyyy-MM-dd HH:mm:ss.FFFFFF");
-                                                        }
-                                                        else
-                                                        {
-                                                            rdi = rd.GetDateTime(j).ToString("HH:mm:ss.FFFFFF");
-                                                        }
+                                                        rdi = rd.GetDateTime(j).ToString(rd.GetDataTypeName(j).StartsWith("timestamp") ? "yyyy-MM-dd HH:mm:ss.FFFFFF" : "HH:mm:ss.FFFFFF");
                                                     }
                                                     else
                                                     {
@@ -248,7 +227,7 @@ namespace NppDB.PostgreSQL
                                     }
                                     dt.Rows.Add(row);
                                 }
-                                string commandMessage = (sql.Trim().ToLower() == "commit" && isAborted) ? "ROLLBACK" : null;
+                                var commandMessage = (sql.Trim().ToLower() == "commit" && isAborted) ? "ROLLBACK" : null;
                                 results.Add(new CommandResult { CommandText = sql, QueryResult = dt, RecordsAffected = rd.RecordsAffected, CommandMessage = commandMessage });
                             }
                         }
@@ -274,7 +253,7 @@ namespace NppDB.PostgreSQL
 
             var lexer = new PostgreSQLLexer(input);
             lexer.RemoveErrorListeners();
-            lexer.AddErrorListener(PostgreSQLLexerErrorListener.Instance);
+            lexer.AddErrorListener(PostgreSqlLexerErrorListener.Instance);
 
             CommonTokenStream tokens;
             try
@@ -284,10 +263,10 @@ namespace NppDB.PostgreSQL
             catch (Exception e)
             {
                 Console.WriteLine($@"Lexer Exception: {e}");
-                throw e;
+                throw;
             }
 
-            var parserErrorListener = new PostgreSQLParserErrorListener();
+            var parserErrorListener = new PostgreSqlParserErrorListener();
             var parser = new PostgreSQLParser(tokens);
             parser.RemoveErrorListeners();
             parser.AddErrorListener(parserErrorListener);
@@ -305,9 +284,11 @@ namespace NppDB.PostgreSQL
             catch (Exception e)
             {
                 Console.WriteLine($@"Parser Exception: {e}");
-                throw e;
+                throw;
             }
         }
+
+        public SqlDialect Dialect => SqlDialect.POSTGRE_SQL;
 
         public bool CanExecute()
         {
@@ -316,6 +297,7 @@ namespace NppDB.PostgreSQL
 
         public bool CanStop()
         {
+            // ReSharper disable once NonConstantEqualityExpressionHasConstantResult
             return _execTh != null && (_execTh.ThreadState & ThreadState.Running) != 0;
         }
 

@@ -25,19 +25,21 @@ namespace NppDB.PostgreSQL
         [XmlIgnore]
         public string Password { set; get; }
         private NpgsqlConnection _connection;
-        private List<PostgreSQLExecutor> Executors { set; get; }
+        private List<PostgreSqlExecutor> Executors { set; get; }
         private string _serverVersion;
 
         public PostgreSqlConnect()
         {
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
-            Executors = new List<PostgreSQLExecutor>();
+            Executors = new List<PostgreSqlExecutor>();
         }
 
         public bool IsOpened => _connection != null && _connection.State == ConnectionState.Open;
 
         public string DatabaseSystemName =>
             !string.IsNullOrEmpty(_serverVersion) ? $"PostgreSQL {_serverVersion}" : "PostgreSQL";
+
+        public SqlDialect Dialect { get; }
 
         internal INppDbCommandHost CommandHost { get; private set; }
 
@@ -59,7 +61,7 @@ namespace NppDB.PostgreSQL
 
         public ISqlExecutor CreateSqlExecutor()
         {
-            var executor = new PostgreSQLExecutor(GetConnection);
+            var executor = new PostgreSqlExecutor(GetConnection);
             Executors.Add(executor);
             return executor;
         }
