@@ -39,7 +39,7 @@ namespace NppDB.PostgreSQL
         public string DatabaseSystemName =>
             !string.IsNullOrEmpty(_serverVersion) ? $"PostgreSQL {_serverVersion}" : "PostgreSQL";
 
-        public SqlDialect Dialect { get; }
+        public SqlDialect Dialect => SqlDialect.POSTGRE_SQL;
 
         internal INppDbCommandHost CommandHost { get; private set; }
 
