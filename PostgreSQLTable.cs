@@ -314,77 +314,85 @@ namespace NppDB.PostgreSQL
 
             var host = connect.CommandHost;
             var schemaName = GetSchemaName();
+            var tableNameWithSchema = $"\"{schemaName}\".\"{Text}\"";
+            
             if (TypeName != "FUNCTION") 
             {
                 menuList.Items.Add(new ToolStripButton($"Select all rows", null, (s, e) =>
                 {
-                    host.Execute(NppDbCommandType.NewFile, null);
-                    var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                    host.Execute(NppDbCommandType.NEW_FILE, null);
+                    var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
                     var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\";";
-                    host.Execute(NppDbCommandType.AppendToCurrentView, new object[] { query });
-                    host.Execute(NppDbCommandType.CreateResultView, new[] { id, connect, connect.CreateSqlExecutor() });
-                    host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                    host.Execute(NppDbCommandType.APPEND_TO_CURRENT_VIEW, new object[] { query });
+                    host.Execute(NppDbCommandType.CREATE_RESULT_VIEW, new[] { id, connect, connect.CreateSqlExecutor() });
+                    host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
                 }));
                 menuList.Items.Add(new ToolStripButton($"Select random 100 rows", null, (s, e) =>
                 {
-                    host.Execute(NppDbCommandType.NewFile, null);
-                    var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
+                    host.Execute(NppDbCommandType.NEW_FILE, null);
+                    var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
                     var query = $"SELECT * FROM \"{schemaName}\".\"{Text}\" FETCH FIRST 100 ROWS ONLY;";
-                    host.Execute(NppDbCommandType.AppendToCurrentView, new object[] { query });
-                    host.Execute(NppDbCommandType.CreateResultView, new[] { id, connect, connect.CreateSqlExecutor() });
-                    host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                    host.Execute(NppDbCommandType.APPEND_TO_CURRENT_VIEW, new object[] { query });
+                    host.Execute(NppDbCommandType.CREATE_RESULT_VIEW, new[] { id, connect, connect.CreateSqlExecutor() });
+                    host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
                 }));
             }
             if (TypeName == "MATERIALIZED_VIEW")
             {
                 menuList.Items.Add(new ToolStripButton("Refresh materialized view", null, (s, e) =>
                 {
-                    var query = $"Refresh materialized view \"{Text}\";";
-                    var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                    host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                    var mvName = $"\"{Text}\"";
+                    var message = $"Are you sure you want to refresh the materialized view {mvName}?";
+                    if (MessageBox.Show(message, @"Confirm Refresh", MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question) != DialogResult.Yes) return;
+                    var query = $"REFRESH MATERIALIZED VIEW {tableNameWithSchema};";
+                    var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
+                    host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
                 }));
                 menuList.Items.Add(new ToolStripButton("Drop materialized view", null, (s, e) =>
                 {
-                    var query = $"Drop materialized view \"{Text}\";";
-                    var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                    host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
+                    var mvName = $"\"{Text}\"";
+                    var message = $"Are you sure you want to drop the materialized view {mvName}?\nThis action cannot be undone.";
+                    if (MessageBox.Show(message, @"Confirm Drop Materialized View", MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Warning) != DialogResult.Yes) return;
+                    var query = $"DROP MATERIALIZED VIEW {tableNameWithSchema};";
+                    var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
+                    host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
+                    (Parent as IRefreshable)?.Refresh();
                 }));
             }
-            else if (TypeName != "FOREIGN_TABLE") 
+            else if (TypeName != "FOREIGN_TABLE")
             {
                 if (schemaName != "information_schema" && schemaName != "pg_catalog")
                 {
-                    if (TypeName != "FUNCTION")
+                    menuList.Items.Add(new ToolStripButton($"Drop {TypeName.ToLower()} (RESTRICT)", null, (s, e) =>
                     {
-                        menuList.Items.Add(new ToolStripButton($"Drop table (RESTRICT)", null, (s, e) =>
-                        {
-                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\";";
-                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
-                        }));
-                        menuList.Items.Add(new ToolStripButton($"Drop table (CASCADE)", null, (s, e) =>
-                        {
-                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\" CASCADE;";
-                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
-                        }));
-                    }
-                    else
+                        var objectName = Text;
+                        var message = $"Are you sure you want to drop the {TypeName.ToLower()} '{objectName}' RESTRICT?\n" +
+                                      "This action cannot be undone and will fail if other objects depend on this {TypeName.ToLower()}.";
+                        if (MessageBox.Show(message, $@"Confirm Drop {TypeName}", MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Warning) != DialogResult.Yes) return;
+                        var paramsQuery = (TypeName == "FUNCTION") ? CollectFunctionParams(connect) : "";
+                        var query = $"DROP {TypeName} {tableNameWithSchema}{paramsQuery} RESTRICT;";
+                        var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
+                        host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
+                        (Parent as IRefreshable)?.Refresh();
+                    }));
+
+                    menuList.Items.Add(new ToolStripButton($"Drop {TypeName.ToLower()} (CASCADE)", null, (s, e) =>
                     {
-                        menuList.Items.Add(new ToolStripButton($"Drop table (RESTRICT)", null, (s, e) =>
-                        {
-                            var paramsQuery = CollectFunctionParams(connect);
-                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\"{paramsQuery};";
-                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
-                        }));
-                        menuList.Items.Add(new ToolStripButton($"Drop table (CASCADE)", null, (s, e) =>
-                        {
-                            var query = $"DROP {TypeName} \"{GetSchemaName()}\".\"{Text}\" CASCADE;";
-                            var id = host.Execute(NppDbCommandType.GetActivatedBufferID, null);
-                            host.Execute(NppDbCommandType.ExecuteSQL, new[] { id, query });
-                        }));
-                    }
+                        var objectName = Text;
+                        var message = $"Are you sure you want to drop the {TypeName.ToLower()} '{objectName}' CASCADE?\n" +
+                                      "WARNING: This will also drop all dependent objects automatically.\n" +
+                                      "This action cannot be undone.";
+                        if (MessageBox.Show(message, $@"Confirm Drop {TypeName} with Cascade", MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Exclamation) != DialogResult.Yes) return;
+                        var paramsQuery = (TypeName == "FUNCTION") ? CollectFunctionParams(connect) : "";
+                        var query = $"DROP {TypeName} {tableNameWithSchema}{paramsQuery} CASCADE;";
+                        var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
+                        host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
+                        (Parent as IRefreshable)?.Refresh();
+                    }));
                 }
             }
 
