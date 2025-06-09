@@ -358,7 +358,15 @@ namespace NppDB.PostgreSQL
                     var query = $"DROP MATERIALIZED VIEW {tableNameWithSchema};";
                     var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
                     host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
-                    (Parent as IRefreshable)?.Refresh();
+                    System.Threading.Thread.Sleep(500);
+                    if (Parent is IRefreshable parentGroupNode)
+                    {
+                        parentGroupNode.Refresh();
+                    }
+                    else if (TreeView != null)
+                    {
+                        Remove();
+                    }
                 }));
             }
             else if (TypeName != "FOREIGN_TABLE")
@@ -376,7 +384,15 @@ namespace NppDB.PostgreSQL
                         var query = $"DROP {TypeName} {tableNameWithSchema}{paramsQuery} RESTRICT;";
                         var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
                         host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
-                        (Parent as IRefreshable)?.Refresh();
+                        System.Threading.Thread.Sleep(500);
+                        if (Parent is IRefreshable parentGroupNode)
+                        {
+                            parentGroupNode.Refresh();
+                        }
+                        else if (TreeView != null)
+                        {
+                            Remove();
+                        }
                     }));
 
                     menuList.Items.Add(new ToolStripButton($"Drop {TypeName.ToLower()} (CASCADE)", null, (s, e) =>
@@ -391,7 +407,15 @@ namespace NppDB.PostgreSQL
                         var query = $"DROP {TypeName} {tableNameWithSchema}{paramsQuery} CASCADE;";
                         var id = host.Execute(NppDbCommandType.GET_ACTIVATED_BUFFER_ID, null);
                         host.Execute(NppDbCommandType.EXECUTE_SQL, new[] { id, query });
-                        (Parent as IRefreshable)?.Refresh();
+                        System.Threading.Thread.Sleep(500);
+                        if (Parent is IRefreshable parentGroupNode)
+                        {
+                            parentGroupNode.Refresh();
+                        }
+                        else if (TreeView != null)
+                        {
+                            Remove();
+                        }
                     }));
                 }
             }

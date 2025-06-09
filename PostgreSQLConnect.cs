@@ -77,34 +77,36 @@ namespace NppDB.PostgreSQL
         public bool CheckLogin()
         {
             var dlg = new frmPostgreSQLConnect { VisiblePassword = false };
-            if (!string.IsNullOrEmpty(Account) || !string.IsNullOrEmpty(Port) ||
-                !string.IsNullOrEmpty(ServerAddress) || !string.IsNullOrEmpty(Database))
+            var isEditingExisting = !string.IsNullOrEmpty(ServerAddress);
+            if (isEditingExisting)
             {
-                dlg.Username = Account;
-                dlg.Port = Port;
-                dlg.Server = ServerAddress;
-                dlg.Database = Database;
                 dlg.ConnectionName = ConnectionName;
-                dlg.SetConnNameVisible(string.IsNullOrEmpty(ConnectionName));
+                dlg.Server = ServerAddress;
+                dlg.Port = Port;
+                dlg.Database = Database;
                 dlg.FocusPassword();
+                dlg.SetConnNameVisible(true);
             }
             else
             {
                 dlg.SetConnNameVisible(true);
             }
-
+            
             var dialogResult = dlg.ShowDialog();
+            if (dialogResult != DialogResult.OK)
+            {
+                return false;
+            }
 
-            if (dialogResult != DialogResult.OK) return false;
-            Password = dlg.Password;
-            Account = dlg.Username;
-            Port = dlg.Port;
-            ServerAddress = dlg.Server;
-            Database = dlg.Database;
             ConnectionName = dlg.ConnectionName;
+            ServerAddress = dlg.Server;
+            Port = dlg.Port;
+            Database = dlg.Database;
+            Account = dlg.Username;
+            Password = dlg.Password;
+            Title = !string.IsNullOrEmpty(ConnectionName) ? ConnectionName : GetDefaultTitle();
 
             return true;
-
         }
 
         public void Connect()
